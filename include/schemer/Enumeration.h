@@ -38,9 +38,10 @@ template< typename T>
     enumeration(const ::std::string & name, const T value);
 
     virtual bool
-    valueToNode(YAML::Node & node, const T & value) const;
+    valueToNode(const T & value, YAML::Node * const node) const;
     virtual bool
-    nodeToValue(ParseLog & parse, T & value, const YAML::Node & node) const;
+    nodeToValue(const YAML::Node & node, T * const value,
+        ParseLog * const log) const;
     virtual Enumeration *
     clone() const;
 

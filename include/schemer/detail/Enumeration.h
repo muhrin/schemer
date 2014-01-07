@@ -26,7 +26,7 @@ template< typename T>
 
 template< typename T>
   bool
-  Enumeration< T>::valueToNode(YAML::Node & node, const T & value) const
+  Enumeration< T>::valueToNode(const T & value, YAML::Node * const node) const
   {
     typename ::std::map< ::std::string, T>::const_iterator it =
         myEnumMap.begin();
@@ -40,14 +40,14 @@ template< typename T>
     if(it == myEnumMap.end())
       return false;
 
-    node = it->first;
+    *node = it->first;
     return true;
   }
 
 template< typename T>
   bool
-  Enumeration< T>::nodeToValue(ParseLog & parse, T & value,
-      const YAML::Node & node) const
+  Enumeration< T>::nodeToValue(const YAML::Node & node, T * const value,
+      ParseLog * const log) const
   {
     typename ::std::map< ::std::string, T>::const_iterator it = myEnumMap.find(
         node.Scalar());
@@ -57,7 +57,7 @@ template< typename T>
       // TODO: Parse error: unrecognised enum value
       return false;
     }
-    value = it->second;
+    *value = it->second;
     return true;
   }
 

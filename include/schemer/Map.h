@@ -66,10 +66,10 @@ template< typename EntryType>
     }
 
     virtual bool
-    valueToNode(YAML::Node & node, const BindingType & value) const;
+    valueToNode(const BindingType & value, YAML::Node * const node) const;
     virtual bool
-    nodeToValue(ParseLog & parse, BindingType & value,
-        const YAML::Node & node) const;
+    nodeToValue(const YAML::Node & node, BindingType * const value,
+        ParseLog * const log) const;
 
     Element *
     element(const ::std::string & name);
@@ -109,10 +109,10 @@ template< class BT>
     entriesEnd() const;
 
     virtual bool
-    valueToNode(YAML::Node & node, const BindingType & map) const;
+    valueToNode(const BindingType & map, YAML::Node * const node) const;
     virtual bool
-    nodeToValue(ParseLog & parse, BindingType & map,
-        const YAML::Node & node) const;
+    nodeToValue(const YAML::Node & node, BindingType * const map,
+        ParseLog * log) const;
 
     template< typename ElementType, typename MemberType>
       detail::HeteroMapElement< BindingType, MemberType,

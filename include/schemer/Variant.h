@@ -33,10 +33,10 @@ template< class ScalarType, class ListType, class MapType>
     }
 
     virtual bool
-    valueToNode(YAML::Node & node, const BindingType & binding) const;
+    valueToNode(const BindingType & binding, YAML::Node * const node) const;
     virtual bool
-    nodeToValue(ParseLog & parse, BindingType & binding,
-        const YAML::Node & node) const;
+    nodeToValue(const YAML::Node & node, BindingType * const binding,
+        ParseLog * const log) const;
 
     virtual VariantScalarListMap *
     clone() const;
@@ -62,10 +62,10 @@ template< class ListType, class MapType>
     }
 
     virtual bool
-    valueToNode(YAML::Node & node, const BindingType & binding) const;
+    valueToNode(const BindingType & binding, YAML::Node * const node) const;
     virtual bool
-    nodeToValue(ParseLog & parse, BindingType & binding,
-        const YAML::Node & node) const;
+    nodeToValue(const YAML::Node & node, BindingType * const binding,
+        ParseLog * const log) const;
 
     virtual VariantListMap *
     clone() const;

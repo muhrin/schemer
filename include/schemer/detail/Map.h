@@ -62,28 +62,29 @@ template< typename T>
     bool
     valueToNode(const BindingType & value, YAML::Node * const node) const
     {
-      return myType.valueToNode(*node, value);
+      return myType.valueToNode(value, node);
     }
     bool
-    nodeToValue(ParseLog & parse, BindingType & value,
-        const YAML::Node & node) const
+    nodeToValue(const YAML::Node & node, BindingType * const value,
+        ParseLog * const log) const
     {
       if(!node.IsDefined() || node.IsNull())
       {
         // Check for a default
         if(myDefault)
         {
-          value = *myDefault;
+          *value = *myDefault;
           return true;
         }
 
-        parse.logError(ParseLogErrorCode::REQUIRED_VALUE_MISSING,
-            "Required map element missing.");
+        if(log)
+          log->logError(ParseLogErrorCode::REQUIRED_VALUE_MISSING,
+              "Required map element missing.");
 
         return false;
       }
 
-      return myType.nodeToValue(parse, value, node);
+      return myType.nodeToValue(node, value, log);
     }
     bool
     defaultValueToNode(YAML::Node & node) const
@@ -91,7 +92,7 @@ template< typename T>
       if(!myDefault)
         return false;
 
-      return valueToNode(node, *myDefault);
+      return valueToNode(*myDefault, node);
     }
 
   private:
@@ -115,11 +116,12 @@ template< class T>
     hasDefault() const = 0;
 
     virtual bool
-    valueToNode(YAML::Node & node, const T & map) const = 0;
+    valueToNode(const T & map, YAML::Node * const node) const = 0;
     virtual bool
-    nodeToValue(ParseLog & parse, T & map, const YAML::Node & node) const = 0;
+    nodeToValue(const YAML::Node & node, T * const map,
+        ParseLog * const log) const = 0;
     virtual bool
-    defaultValueToMap(T & map) const = 0;
+    defaultValueToMap(T * const map) const = 0;
 
     virtual HeteroMapElementBase *
     clone() const = 0;
@@ -170,14 +172,15 @@ template< class MapBindingType, typename MapBindingMemberType, typename T>
     }
 
     virtual bool
-    valueToNode(YAML::Node & node, const MapBindingType & map) const
+    valueToNode(const MapBindingType & map, YAML::Node * const node) const
     {
       const MapBindingMemberType value = map.*myMember;
-      return myType.valueToNode(node, value);
+      return myType.valueToNode(value, node);
     }
+
     virtual bool
-    nodeToValue(ParseLog & parse, MapBindingType & map,
-        const YAML::Node & node) const
+    nodeToValue(const YAML::Node & node, MapBindingType * const map,
+        ParseLog * const log) const
     {
       if(!node.IsDefined() || node.IsNull())
       {
@@ -185,28 +188,31 @@ template< class MapBindingType, typename MapBindingMemberType, typename T>
         if(defaultValueToMap(map))
           return true;
 
-        parse.logError(ParseLogErrorCode::REQUIRED_VALUE_MISSING,
-            "Required map entry missing.");
+        if(log)
+          log->logError(ParseLogErrorCode::REQUIRED_VALUE_MISSING,
+              "Required map entry missing.");
 
         return false;
       }
 
       MapBindingMemberType value;
-      if(!myType.nodeToValue(parse, value, node))
+      if(!myType.nodeToValue(node, &value, log))
         return false;
 
-      map.*myMember = value;
+      *map.*myMember = value;
       return true;
     }
+
     virtual bool
-    defaultValueToMap(MapBindingType & map) const
+    defaultValueToMap(MapBindingType * const map) const
     {
       if(!myDefault)
         return false;
 
-      map.*myMember = *myDefault;
+      *map.*myMember = *myDefault;
       return true;
     }
+
     virtual HeteroMapElement *
     clone() const
     {
@@ -263,20 +269,20 @@ template< class MapBindingType, typename MapBindingMemberType, typename T>
     }
 
     virtual bool
-    valueToNode(YAML::Node & node, const MapBindingType & map) const
+    valueToNode(const MapBindingType & map, YAML::Node * const node) const
     {
       if(!(map.*myMember))
       {
-        node = YAML::Node(); // Set to null node
+        *node = YAML::Node(); // Set to null node
         return true;
       }
 
       const MapBindingMemberType value = *(map.*myMember);
-      return myType.valueToNode(node, value);
+      return myType.valueToNode(value, node);
     }
     virtual bool
-    nodeToValue(ParseLog & parse, MapBindingType & map,
-        const YAML::Node & node) const
+    nodeToValue(const YAML::Node & node, MapBindingType * const map,
+        ParseLog * const log) const
     {
       if(!node.IsDefined() || node.IsNull())
       {
@@ -286,16 +292,16 @@ template< class MapBindingType, typename MapBindingMemberType, typename T>
       }
 
       MapBindingMemberType value;
-      if(!myType.nodeToValue(parse, value, node))
+      if(!myType.nodeToValue(node, &value, log))
         return false;
 
-      map.*myMember = value;
+      *map.*myMember = value;
       return true;
     }
     virtual bool
-    defaultValueToMap(MapBindingType & map) const
+    defaultValueToMap(MapBindingType * const map) const
     {
-      map.*myMember = myDefault;
+      *map.*myMember = myDefault;
       return true;
     }
     virtual HeteroMapElement *
@@ -341,18 +347,18 @@ template< class DerivedBinding, typename BaseBinding>
       return myEntry->hasDefault();
     }
     virtual bool
-    valueToNode(YAML::Node & node, const DerivedBinding & map) const
+    valueToNode(const DerivedBinding & map, YAML::Node * const node) const
     {
-      return myEntry->valueToNode(node, map);
+      return myEntry->valueToNode(map, node);
     }
     virtual bool
-    nodeToValue(ParseLog & parse, DerivedBinding & map,
-        const YAML::Node & node) const
+    nodeToValue(const YAML::Node & node, DerivedBinding * const map,
+        ParseLog * const log) const
     {
-      return myEntry->nodeToValue(parse, map, node);
+      return myEntry->nodeToValue(node, map, log);
     }
     virtual bool
-    defaultValueToMap(DerivedBinding & map) const
+    defaultValueToMap(DerivedBinding * const map) const
     {
       return myEntry->defaultValueToMap(map);
     }
@@ -376,8 +382,8 @@ template< typename T>
 
 template< typename EntryType>
   bool
-  Map< EntryType>::valueToNode(YAML::Node & node,
-      const BindingType & value) const
+  Map< EntryType>::valueToNode(const BindingType & value,
+      YAML::Node * const node) const
   {
     typename EntriesMap::const_iterator it;
     BOOST_FOREACH(typename BindingType::const_reference entry, value)
@@ -387,14 +393,14 @@ template< typename EntryType>
       {
         YAML::Node entryNode;
         it->second.valueToNode(entry.second, &entryNode);
-        node[entry.first] = entryNode;
+        (*node)[entry.first] = entryNode;
       }
       else if(myAllowUnknownEntries)
       {
         EntryType element;
         YAML::Node entryNode;
-        element.valueToNode(entryNode, entry.second);
-        node[entry.first] = entryNode;
+        element.valueToNode(entry.second, &entryNode);
+        (*node)[entry.first] = entryNode;
       }
     }
     return true;
@@ -402,12 +408,13 @@ template< typename EntryType>
 
 template< typename EntryType>
   bool
-  Map< EntryType>::nodeToValue(ParseLog & parse, BindingType & value,
-      const YAML::Node & node) const
+  Map< EntryType>::nodeToValue(const YAML::Node & node,
+      BindingType * const value, ParseLog * const log) const
   {
     if(!node.IsMap())
     {
-      parse.logError(ParseLogErrorCode::NODE_TYPE_WRONG, "Expected map");
+      if(log)
+        log->logError(ParseLogErrorCode::NODE_TYPE_WRONG, "Expected map");
       return false;
     }
 
@@ -415,21 +422,21 @@ template< typename EntryType>
     for(YAML::Node::const_iterator it = node.begin(), end = node.end();
         it != end; ++it)
     {
-      ParseLog::PathPusher pusher(parse, it->first.Scalar());
+      ParseLog::PathPusher pusher(log, it->first.Scalar());
 
       entriesIt = myEntries.find(it->first.Scalar());
       if(entriesIt != myEntries.end())
       {
         typename BindingType::mapped_type mappedValue;
-        if(entriesIt->second.nodeToValue(parse, mappedValue, it->second))
-          value[it->first.Scalar()] = mappedValue;
+        if(entriesIt->second.nodeToValue(it->second, &mappedValue, log))
+          (*value)[it->first.Scalar()] = mappedValue;
       }
       else if(myAllowUnknownEntries)
       {
         typename BindingType::mapped_type mappedValue;
         EntryType entryType;
-        if(entryType.nodeToValue(parse, mappedValue, it->second))
-          value[it->first.Scalar()] = mappedValue;
+        if(entryType.nodeToValue(it->second, &mappedValue, log))
+          (*value)[it->first.Scalar()] = mappedValue;
       }
     }
     return true;
@@ -479,22 +486,22 @@ template< class T>
 
 template< class BindingType>
   bool
-  HeteroMap< BindingType>::valueToNode(YAML::Node & node,
-      const BindingType & value) const
+  HeteroMap< BindingType>::valueToNode(const BindingType & value,
+      YAML::Node * const node) const
   {
     BOOST_FOREACH(typename EntriesMap::const_reference entry, myEntries)
     {
       YAML::Node entryNode;
-      if(entry.second->valueToNode(entryNode, value))
-        node[entry.first] = entryNode;
+      if(entry.second->valueToNode(value, &entryNode))
+        (*node)[entry.first] = entryNode;
     }
     return true;
   }
 
 template< typename BindingType>
   bool
-  HeteroMap< BindingType>::nodeToValue(ParseLog & parse, BindingType & map,
-      const YAML::Node & node) const
+  HeteroMap< BindingType>::nodeToValue(const YAML::Node & node,
+      BindingType * const map, ParseLog * const log) const
   {
     if(node.IsNull())
     {
@@ -504,7 +511,7 @@ template< typename BindingType>
       const YAML::Node nullNode;
       BOOST_FOREACH(typename EntriesMap::const_reference entry, myEntries)
       {
-        if(!entry.second->nodeToValue(parse, map, nullNode))
+        if(!entry.second->nodeToValue(nullNode, map, log))
           succeeded = false;
       }
       return succeeded;
@@ -512,7 +519,8 @@ template< typename BindingType>
 
     if(!node.IsMap())
     {
-      parse.logError(ParseLogErrorCode::NODE_TYPE_WRONG, "Expected map.");
+      if(log)
+        log->logError(ParseLogErrorCode::NODE_TYPE_WRONG, "Expected map.");
       return false;
     }
 
@@ -531,11 +539,12 @@ template< typename BindingType>
       const ::std::string & entryName = it->first.Scalar();
       process = toProcess.find(entryName);
       if(process != toProcess.end())
-        myEntries.find(entryName)->second->nodeToValue(parse, map, it->second);
+        myEntries.find(entryName)->second->nodeToValue(it->second, map, log);
       else
       {
-        parse.logError(ParseLogErrorCode::UNRECOGNISED_ELEMENT,
-            "Unrecognised map element: " + *process);
+        if(log)
+          log->logError(ParseLogErrorCode::UNRECOGNISED_ELEMENT,
+              "Unrecognised map element: " + *process);
       }
       toProcess.erase(process);
     }
@@ -549,8 +558,11 @@ template< typename BindingType>
         if(entry.hasDefault())
           entry.defaultValueToMap(map);
         else
-          parse.logError(ParseLogErrorCode::REQUIRED_VALUE_MISSING,
-              "Required element missing: " + e);
+        {
+          if(log)
+            log->logError(ParseLogErrorCode::REQUIRED_VALUE_MISSING,
+                "Required element missing: " + e);
+        }
       }
     }
 

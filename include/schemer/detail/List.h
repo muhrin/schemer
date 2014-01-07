@@ -36,32 +36,35 @@ template< class T>
 
 template< class T>
   bool
-  List< T>::valueToNode(YAML::Node & node, const BindingType & list) const
+  List< T>::valueToNode(const BindingType & list, YAML::Node * const node) const
   {
     BOOST_FOREACH(typename BindingType::const_reference value, list)
     {
       YAML::Node listEntry;
-      if(myEntryType.valueToNode(listEntry, value))
-        node.push_back(listEntry);
+      if(myEntryType.valueToNode(value, &listEntry))
+        node->push_back(listEntry);
     }
     return true;
   }
 
 template< class T>
   bool
-  List< T>::nodeToValue(ParseLog & parse, BindingType & list,
-      const YAML::Node & node) const
+  List< T>::nodeToValue(const YAML::Node & node, BindingType * const list,
+      ParseLog * const log) const
   {
     if(!node.IsSequence())
     {
-      parse.logError(ParseLogErrorCode::NODE_TYPE_WRONG, "Expected sequence.");
+      if(log)
+        log->logError(ParseLogErrorCode::NODE_TYPE_WRONG,
+            "Expected sequence.");
       return false;
     }
 
     if(myLength != -1 && myLength != static_cast< int>(node.size()))
     {
-      parse.logError(ParseLogErrorCode::SEQUENCE_LENGTH_MISMATCH,
-          "Sequence is wrong length");
+      if(log)
+        log->logError(ParseLogErrorCode::SEQUENCE_LENGTH_MISMATCH,
+            "Sequence is wrong length");
       return false;
     }
 
@@ -69,11 +72,11 @@ template< class T>
     {
       ::std::stringstream ss;
       ss << "[" << i << "]";
-      ParseLog::PathPusher pusher(parse, ss.str());
+      ParseLog::PathPusher pusher(log, ss.str());
 
       typename T::BindingType entryValue;
-      if(myEntryType.nodeToValue(parse, entryValue, node[i]))
-        list.push_back(entryValue);
+      if(myEntryType.nodeToValue(node[i], &entryValue, log))
+        list->push_back(entryValue);
     }
 
     return true;

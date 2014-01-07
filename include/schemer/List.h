@@ -36,10 +36,10 @@ template< class EntryType>
     }
 
     virtual bool
-    valueToNode(YAML::Node & node, const BindingType & list) const;
+    valueToNode(const BindingType & list, YAML::Node * const node) const;
     virtual bool
-    nodeToValue(ParseLog & parse, BindingType & list,
-        const YAML::Node & node) const;
+    nodeToValue(const YAML::Node & node, BindingType * const list,
+        ParseLog * const log) const;
 
     List *
     length(const int length);

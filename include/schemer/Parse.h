@@ -86,10 +86,10 @@ public:
   class PathPusher : ::boost::noncopyable
   {
   public:
-    PathPusher(ParseLog & parse, const ::std::string & path);
+    PathPusher(ParseLog * const log, const ::std::string & path);
     ~PathPusher();
   private:
-    ParseLog & myParse;
+    ParseLog * const myLog;
     const ::std::string & myPath;
   };
 

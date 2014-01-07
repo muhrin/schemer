@@ -33,15 +33,19 @@ ParseLogError::print() const
       << ::std::endl;
 }
 
-ParseLog::PathPusher::PathPusher(ParseLog & parse, const ::std::string & path) :
-    myParse(parse), myPath(path)
+ParseLog::PathPusher::PathPusher(ParseLog * const log,
+    const ::std::string & path) :
+    myLog(log), myPath(path)
 {
-  myParse.doPushPath(myPath);
+
+  if(myLog)
+    myLog->doPushPath(myPath);
 }
 
 ParseLog::PathPusher::~PathPusher()
 {
-  myParse.doPopPath();
+  if(myLog)
+    myLog->doPopPath();
 }
 
 bool

@@ -34,9 +34,15 @@ template< typename T>
     }
 
     virtual bool
-    valueToNode(YAML::Node & node, const T & value) const = 0;
+    valueToNode(const T & value, YAML::Node * const node) const = 0;
     virtual bool
-    nodeToValue(ParseLog & parse, T & value, const YAML::Node & node) const = 0;
+    nodeToValue(const YAML::Node & node, T * const value,
+        ParseLog * const log) const = 0;
+    bool
+    nodeToValue(const YAML::Node & node, T * const value) const
+    {
+      return nodeToValue(node, value, NULL);
+    }
 
     virtual Type *
     clone() const = 0;

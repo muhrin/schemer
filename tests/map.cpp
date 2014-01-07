@@ -165,9 +165,8 @@ BOOST_AUTO_TEST_CASE(MapDefaultValuesTest)
   peopleNode["Lastname"] = YAML::Node();
 
   ::std::map< ::std::string, ::std::string> people;
-  schemer::ParseLog log;
   PersonInfo pInfo;
-  pInfo.nodeToValue(log, people, peopleNode);
+  pInfo.nodeToValue(peopleNode, &people, NULL);
 
   BOOST_REQUIRE(!people.empty());
   ::std::map< ::std::string, ::std::string>::const_iterator it = people.find("Firstname");

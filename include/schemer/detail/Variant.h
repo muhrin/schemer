@@ -26,7 +26,7 @@ template< class ScalarType, class ListType, class MapType>
   class ValueToNodeVisitor : public boost::static_visitor< bool>
   {
   public:
-    ValueToNodeVisitor(YAML::Node & node, const ScalarType & scalar,
+    ValueToNodeVisitor(YAML::Node * const node, const ScalarType & scalar,
         const ListType & list, const MapType & map) :
         myNode(node), myScalar(scalar), myList(list), myMap(map)
     {
@@ -35,23 +35,23 @@ template< class ScalarType, class ListType, class MapType>
     bool
     operator()(const typename ScalarType::BindingType & binding) const
     {
-      return myScalar.valueToNode(myNode, binding);
+      return myScalar.valueToNode(binding, myNode);
     }
 
     bool
     operator()(const typename ListType::BindingType & binding) const
     {
-      return myList.valueToNode(myNode, binding);
+      return myList.valueToNode(binding, myNode);
     }
 
     bool
     operator()(const typename MapType::BindingType & binding) const
     {
-      return myMap.valueToNode(myNode, binding);
+      return myMap.valueToNode(binding, myNode);
     }
 
   private:
-    YAML::Node & myNode;
+    YAML::Node * const myNode;
     const ScalarType & myScalar;
     const ListType & myList;
     const MapType & myMap;
@@ -60,7 +60,7 @@ template< class ScalarType, class ListType, class MapType>
 template< class ScalarType, class ListType, class MapType>
   bool
   VariantScalarListMap< ScalarType, ListType, MapType>::valueToNode(
-      YAML::Node & node, const BindingType & binding) const
+      const BindingType & binding, YAML::Node * const node) const
   {
     ValueToNodeVisitor< ScalarType, ListType, MapType> valueToNodeVisitor(node,
         myScalarType, myListType, myMapType);
@@ -71,28 +71,29 @@ template< class ScalarType, class ListType, class MapType>
 template< class ScalarType, class ListType, class MapType>
   bool
   VariantScalarListMap< ScalarType, ListType, MapType>::nodeToValue(
-      ParseLog & parse, BindingType & binding, const YAML::Node & node) const
+      const YAML::Node & node, BindingType * const binding,
+      ParseLog * const log) const
   {
     if(node.IsScalar())
     {
       // Make the variant contain the scalar binding type
-      binding = ScalarType::BindingType();
-      return myListType.nodeToValue(parse,
-          ::boost::get< ScalarType::BindingType>(binding), node);
+      *binding = ScalarType::BindingType();
+      return myListType.nodeToValue(node,
+          ::boost::get< ScalarType::BindingType>(binding), log);
     }
     else if(node.IsSequence())
     {
       // Make the variant contain the list binding type
-      binding = ListType::BindingType();
-      return myListType.nodeToValue(parse,
-          ::boost::get< ListType::BindingType>(binding), node);
+      *binding = ListType::BindingType();
+      return myListType.nodeToValue(node,
+          ::boost::get< ListType::BindingType>(binding), log);
     }
     else if(node.IsMap())
     {
       // Make the variant contain the list binding type
-      binding = MapType::BindingType();
-      return myMapType.nodeToValue(parse,
-          ::boost::get< MapType::BindingType>(binding), node);
+      *binding = MapType::BindingType();
+      return myMapType.nodeToValue(node,
+          ::boost::get< MapType::BindingType>(binding), log);
     }
   }
 
@@ -105,8 +106,8 @@ template< class ScalarType, class ListType, class MapType>
 
 template< class ListSchema, class MapSchema>
   bool
-  VariantListMap< ListSchema, MapSchema>::valueToNode(YAML::Node & node,
-      const BindingType & binding) const
+  VariantListMap< ListSchema, MapSchema>::valueToNode(
+      const BindingType & binding, YAML::Node * const node) const
   {
     ValueToNodeVisitor< _null, ListSchema, MapSchema> valueToNodeVisitor(node,
         _null(), myListType, myMapType);
@@ -116,22 +117,22 @@ template< class ListSchema, class MapSchema>
 
 template< class ListSchema, class MapSchema>
   bool
-  VariantListMap< ListSchema, MapSchema>::nodeToValue(ParseLog & parse,
-      BindingType & binding, const YAML::Node & node) const
+  VariantListMap< ListSchema, MapSchema>::nodeToValue(const YAML::Node & node,
+      BindingType * const binding, ParseLog * const log) const
   {
     if(node.IsSequence())
     {
       // Make the variant contain the list binding type
-      binding = typename ListSchema::BindingType();
-      return myListType.nodeToValue(parse,
-          ::boost::get< typename ListSchema::BindingType>(binding), node);
+      *binding = typename ListSchema::BindingType();
+      return myListType.nodeToValue(node,
+          ::boost::get< typename ListSchema::BindingType>(binding), log);
     }
     else if(node.IsMap())
     {
       // Make the variant contain the list binding type
-      binding = typename MapSchema::BindingType();
-      return myMapType.nodeToValue(parse,
-          ::boost::get< typename MapSchema::BindingType>(binding), node);
+      *binding = typename MapSchema::BindingType();
+      return myMapType.nodeToValue(node,
+          ::boost::get< typename MapSchema::BindingType>(binding), log);
     }
     else
       return false;

@@ -32,41 +32,44 @@ template< typename T>
     }
 
     virtual bool
-    valueToNode(YAML::Node & node, const T & value) const;
+    valueToNode(const T & value, YAML::Node * const node) const;
     virtual bool
-    nodeToValue(ParseLog & parse, T & value, const YAML::Node & node) const;
+    nodeToValue(const YAML::Node & node, T * const value,
+        ParseLog * const log) const;
     virtual Scalar *
     clone() const;
   };
 
 template< typename T>
   bool
-  Scalar< T>::valueToNode(YAML::Node & node, const T & value) const
+  Scalar< T>::valueToNode(const T & value, YAML::Node * const node) const
   {
     // TODO: Find out how to check if transcoding failed
-    node = value;
+    *node = value;
     return true;
   }
 
 template< typename T>
   bool
-  Scalar< T>::nodeToValue(ParseLog & parse, T & value, const YAML::Node & node) const
+  Scalar< T>::nodeToValue(const YAML::Node & node, T * const value,
+      ParseLog * const log) const
   {
-    // TODO: Eventually reinstate this conditional
-    //if(!node.IsScalar())
-    //{
-    //  parse.logError(ParseLogErrorCode::NODE_TYPE_WRONG, "Expected scalar.");
-    //  return false;
-    //}
+    if(!node.IsScalar())
+    {
+      if(log)
+        log->logError(ParseLogErrorCode::NODE_TYPE_WRONG, "Expected scalar.");
+      return false;
+    }
 
     try
     {
-      value = node.as< T>();
+      *value = node.as< T>();
     }
     catch(const YAML::Exception & /*e*/)
     {
-      parse.logError(ParseLogErrorCode::TYPE_CONVERSION_FAILED,
-          "Value is not a valid scalar of the right type.");
+      if(log)
+        log->logError(ParseLogErrorCode::TYPE_CONVERSION_FAILED,
+            "Failed to convert scalar to bound type: " + node.Scalar());
       return false;
     }
     return true;
