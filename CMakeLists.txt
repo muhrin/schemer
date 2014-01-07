@@ -50,7 +50,6 @@ set_property(TARGET PROPERTY PROJECT_LABEL "Schemer")
 
 
 set(schemer_Header_Files
-  include/schemer/Element.h
   include/schemer/Enumeration.h
   include/schemer/Fundamental.h
   include/schemer/List.h
@@ -66,7 +65,6 @@ set(schemer_Header_Files
 source_group("Header Files" FILES ${schemer_Header_Files})
 
 set(schemer_Header_Files__detail
-  include/schemer/detail/Element.h
   include/schemer/detail/Enumeration.h
   include/schemer/detail/Element.h
   include/schemer/detail/Fundamental.h

@@ -61,16 +61,16 @@ struct Employee_t : public Person_t
 // SCHEMAS ///////////////////////////////////
 SCHEMER_MAP(Person, Person_t)
 {
-  element<schemer::String>(KEY_NAME, &Person_t::name);
-  element<schemer::Int>(KEY_AGE, &Person_t::age);
-  element<schemer::String>(KEY_NICKNAME, &Person_t::nickname);
-  element<schemer::Int>(KEY_PHONE_NO, &Person_t::phone_no);
+  element(KEY_NAME, &Person_t::name);
+  element(KEY_AGE, &Person_t::age);
+  element(KEY_NICKNAME, &Person_t::nickname);
+  element(KEY_PHONE_NO, &Person_t::phone_no);
 }
 
 SCHEMER_MAP(Employee, Employee_t)
 {
-  extends<Person>();
-  element<schemer::Int>(KEY_EMPLOYEE_NO, &Employee_t::employeeNo)->defaultValue(-1);
+  extends< Person>();
+  element(KEY_EMPLOYEE_NO, &Employee_t::employeeNo)->defaultValue(-1);
 }
 
 const Person_t &
@@ -153,8 +153,27 @@ BOOST_AUTO_TEST_CASE(MapTest)
 
 SCHEMER_HOMO_MAP(PersonInfo)
 {
-  element("Firstname");
-  element("Lastname");
+  element("Firstname")->defaultValue("Anon");
+  element("Lastname")->defaultValue("Ymous");
+}
+
+BOOST_AUTO_TEST_CASE(MapDefaultValuesTest)
+{
+  // SETTINGS ///
+  YAML::Node peopleNode;
+  peopleNode["Firstname"] = YAML::Node();
+  peopleNode["Lastname"] = YAML::Node();
+
+  ::std::map< ::std::string, ::std::string> people;
+  schemer::ParseLog log;
+  PersonInfo pInfo;
+  pInfo.nodeToValue(log, people, peopleNode);
+
+  BOOST_REQUIRE(!people.empty());
+  ::std::map< ::std::string, ::std::string>::const_iterator it = people.find("Firstname");
+  BOOST_REQUIRE(it->second == "Anon");
+  it = people.find("Lastname");
+  BOOST_REQUIRE(it->second == "Ymous");
 }
 
 const Person_t &

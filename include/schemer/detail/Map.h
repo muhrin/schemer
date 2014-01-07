@@ -15,7 +15,6 @@
 #include <boost/range/iterator_range.hpp>
 #include <boost/scoped_ptr.hpp>
 
-#include "schemer/Element.h"
 #include "schemer/Registry.h"
 
 // DEFINES //////////////////////////////////////////////
@@ -25,6 +24,82 @@
 namespace schemer {
 namespace detail {
 
+template< typename T>
+  class HomoMapElement
+  {
+    typedef typename T::BindingType BindingType;
+  public:
+    HomoMapElement() :
+        myRequired(false)
+    {
+    }
+
+    HomoMapElement *
+    required()
+    {
+      myRequired = true;
+      return this;
+    }
+
+    bool
+    isRequired() const
+    {
+      return myRequired;
+    }
+
+    HomoMapElement *
+    defaultValue(const BindingType & defaultValue)
+    {
+      myDefault = defaultValue;
+      return this;
+    }
+    const ::boost::optional< BindingType>
+    getDefault() const
+    {
+      return myDefault;
+    }
+
+    bool
+    valueToNode(const BindingType & value, YAML::Node * const node) const
+    {
+      return myType.valueToNode(*node, value);
+    }
+    bool
+    nodeToValue(ParseLog & parse, BindingType & value,
+        const YAML::Node & node) const
+    {
+      if(!node.IsDefined() || node.IsNull())
+      {
+        // Check for a default
+        if(myDefault)
+        {
+          value = *myDefault;
+          return true;
+        }
+
+        parse.logError(ParseLogErrorCode::REQUIRED_VALUE_MISSING,
+            "Required map element missing.");
+
+        return false;
+      }
+
+      return myType.nodeToValue(parse, value, node);
+    }
+    bool
+    defaultValueToNode(YAML::Node & node) const
+    {
+      if(!myDefault)
+        return false;
+
+      return valueToNode(node, *myDefault);
+    }
+
+  private:
+    const T myType;
+    ::boost::optional< BindingType> myDefault;
+    bool myRequired;
+  };
+
 template< class T>
   class HeteroMapElementBase
   {
@@ -33,6 +108,11 @@ template< class T>
     ~HeteroMapElementBase()
     {
     }
+
+    virtual bool
+    isRequired() const = 0;
+    virtual bool
+    hasDefault() const = 0;
 
     virtual bool
     valueToNode(YAML::Node & node, const T & map) const = 0;
@@ -52,15 +132,16 @@ template< class T>
     return entry.clone();
   }
 
-template< class MapBindingType, typename T, typename MapBindingMemberType>
+template< class MapBindingType, typename MapBindingMemberType, typename T>
   class HeteroMapElement : public HeteroMapElementBase< MapBindingType>
   {
-    typedef typename T::BindingType BindingType;
+    typedef T BindingType;
     typedef MapBindingMemberType (MapBindingType::* const Member);
+    typedef detail::Type< T> ElementType;
 
   public:
-    HeteroMapElement(Member member) :
-        myMember(member)
+    HeteroMapElement(const ElementType & elementType, Member member) :
+        myType(elementType), myMember(member)
     {
     }
     virtual
@@ -77,6 +158,18 @@ template< class MapBindingType, typename T, typename MapBindingMemberType>
 
     // From HeteroMapElementBase ///////////////
     virtual bool
+    isRequired() const
+    {
+      return true;
+    }
+
+    virtual bool
+    hasDefault() const
+    {
+      return myDefault;
+    }
+
+    virtual bool
     valueToNode(YAML::Node & node, const MapBindingType & map) const
     {
       const MapBindingMemberType value = map.*myMember;
@@ -86,7 +179,7 @@ template< class MapBindingType, typename T, typename MapBindingMemberType>
     nodeToValue(ParseLog & parse, MapBindingType & map,
         const YAML::Node & node) const
     {
-      if(!node.IsDefined())
+      if(!node.IsDefined() || node.IsNull())
       {
         // Check for a default
         if(defaultValueToMap(map))
@@ -122,22 +215,23 @@ template< class MapBindingType, typename T, typename MapBindingMemberType>
     // End from HeteroMapElementBase /////////////
 
   private:
-    T myType;
+    const ElementType & myType;
     Member myMember;
     ::boost::optional< MapBindingMemberType> myDefault;
   };
 
-template< class MapBindingType, typename T, typename MapBindingMemberType>
-  class HeteroMapElement< MapBindingType, T,
-      ::boost::optional< MapBindingMemberType> > : public HeteroMapElementBase<
+template< class MapBindingType, typename MapBindingMemberType, typename T>
+  class HeteroMapElement< MapBindingType,
+      ::boost::optional< MapBindingMemberType>, T> : public HeteroMapElementBase<
       MapBindingType>
   {
     typedef typename ::boost::optional< MapBindingMemberType> BindingType;
     typedef BindingType (MapBindingType::* const Member);
+    typedef detail::Type< T> ElementType;
 
   public:
-    HeteroMapElement(Member member) :
-        myMember(member)
+    HeteroMapElement(const ElementType & elementType, Member member) :
+        myType(elementType), myMember(member)
     {
     }
     virtual
@@ -157,6 +251,18 @@ template< class MapBindingType, typename T, typename MapBindingMemberType>
 
     // From HeteroMapElementBase ///////////////
     virtual bool
+    isRequired() const
+    {
+      return true;
+    }
+
+    virtual bool
+    hasDefault() const
+    {
+      return myDefault;
+    }
+
+    virtual bool
     valueToNode(YAML::Node & node, const MapBindingType & map) const
     {
       if(!(map.*myMember))
@@ -172,7 +278,7 @@ template< class MapBindingType, typename T, typename MapBindingMemberType>
     nodeToValue(ParseLog & parse, MapBindingType & map,
         const YAML::Node & node) const
     {
-      if(!node.IsDefined())
+      if(!node.IsDefined() || node.IsNull())
       {
         // Check for a default
         defaultValueToMap(map);
@@ -200,7 +306,7 @@ template< class MapBindingType, typename T, typename MapBindingMemberType>
     // End from HeteroMapElementBase /////////////
 
   private:
-    T myType;
+    const ElementType & myType;
     Member myMember;
     ::boost::optional< MapBindingMemberType> myDefault;
   };
@@ -225,6 +331,16 @@ template< class DerivedBinding, typename BaseBinding>
     }
 
     virtual bool
+    isRequired() const
+    {
+      return myEntry->isRequired();
+    }
+    virtual bool
+    hasDefault() const
+    {
+      return myEntry->hasDefault();
+    }
+    virtual bool
     valueToNode(YAML::Node & node, const DerivedBinding & map) const
     {
       return myEntry->valueToNode(node, map);
@@ -240,7 +356,6 @@ template< class DerivedBinding, typename BaseBinding>
     {
       return myEntry->defaultValueToMap(map);
     }
-
     virtual HeteroMapBaseEntryWrapper *
     clone() const
     {
@@ -271,7 +386,7 @@ template< typename EntryType>
       if(it != myEntries.end())
       {
         YAML::Node entryNode;
-        it->second.valueToNode(entryNode, entry.second);
+        it->second.valueToNode(entry.second, &entryNode);
         node[entry.first] = entryNode;
       }
       else if(myAllowUnknownEntries)
@@ -321,7 +436,7 @@ template< typename EntryType>
   }
 
 template< typename EntryType>
-  typename Map< EntryType>::ElementType *
+  typename Map< EntryType>::Element *
   Map< EntryType>::element(const ::std::string & name)
   {
     return &myEntries[name];
@@ -401,38 +516,45 @@ template< typename BindingType>
       return false;
     }
 
+    // First populate all the elements we need to process so we can check them off
     ::std::set< ::std::string> toProcess;
     BOOST_FOREACH(typename EntriesMap::const_reference entry, myEntries)
     {
       toProcess.insert(entry.first);
     }
 
+    // Now go through the node checking each complete element off
     ::std::set< ::std::string>::const_iterator process;
-    typename EntriesMap::const_iterator entry;
     for(YAML::Node::const_iterator it = node.begin(), end = node.end();
         it != end; ++it)
     {
       const ::std::string & entryName = it->first.Scalar();
       process = toProcess.find(entryName);
       if(process != toProcess.end())
-      {
-        entry = myEntries.find(entryName);
-        if(entry != myEntries.end())
-        {
-          entry->second->nodeToValue(parse, map, it->second);
-        }
-      }
+        myEntries.find(entryName)->second->nodeToValue(parse, map, it->second);
       else
       {
-        // TODO: Error: unrecognised map entry
+        parse.logError(ParseLogErrorCode::UNRECOGNISED_ELEMENT,
+            "Unrecognised map element: " + *process);
       }
       toProcess.erase(process);
     }
 
-    // TODO: Check that toProcess is empty
+    // Finally see if there are any left that need processing
+    BOOST_FOREACH(const ::std::string & e, toProcess)
+    {
+      const Entry & entry = *myEntries.find(e)->second;
+      if(entry.isRequired())
+      {
+        if(entry.hasDefault())
+          entry.defaultValueToMap(map);
+        else
+          parse.logError(ParseLogErrorCode::REQUIRED_VALUE_MISSING,
+              "Required element missing: " + e);
+      }
+    }
 
     return true;
-
   }
 
 template< class T>
@@ -444,12 +566,33 @@ template< class T>
 
 template< class BindingType>
   template< typename ElementType, typename MemberType>
-    detail::HeteroMapElement< BindingType, ElementType, MemberType> *
+    detail::HeteroMapElement< BindingType, MemberType,
+        typename ElementType::BindingType> *
     HeteroMap< BindingType>::element(const ::std::string & name,
         MemberType (BindingType::* const member))
     {
-      detail::HeteroMapElement< BindingType, ElementType, MemberType> * const element =
-          new detail::HeteroMapElement< BindingType, ElementType, MemberType>(
+      detail::HeteroMapElement< BindingType, MemberType,
+          typename ElementType::BindingType> * const element =
+          new detail::HeteroMapElement< BindingType, MemberType,
+              typename ElementType::BindingType>(
+              getTypeInstance< ElementType>(), member);
+
+      // WARNING: This will only insert the new entry if one with the same name doesn't
+      // exist already.  Otherwise the new one will be destroyed and the old one returned.
+      // This may not be what the user expects.
+      myEntries.insert(name, element);
+      return element;
+    }
+
+template< class BindingType>
+  template< typename MemberType>
+    detail::HeteroMapElement< BindingType, MemberType> *
+    HeteroMap< BindingType>::element(const ::std::string & name,
+        MemberType (BindingType::* const member))
+    {
+      detail::HeteroMapElement< BindingType, MemberType> * const element =
+          new detail::HeteroMapElement< BindingType, MemberType>(
+              getType< typename detail::StripOptional< MemberType>::Type>(),
               member);
 
       // WARNING: This will only insert the new entry if one with the same name doesn't

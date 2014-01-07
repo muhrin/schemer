@@ -17,7 +17,6 @@
 #include <boost/ptr_container/ptr_map.hpp>
 #include <boost/scoped_ptr.hpp>
 
-#include "schemer/Element.h"
 #include "schemer/detail/Type.h"
 
 // DEFINES //////////////////////////////////////////////
@@ -26,13 +25,28 @@ namespace schemer {
 
 // FORWARD DECLARATIONS ////////////////////////////////////
 namespace detail {
-template< class T, typename U, typename V>
+template< typename T>
+  struct StripOptional
+  {
+    typedef T Type;
+  };
+
+template< typename T>
+  struct StripOptional< ::boost::optional< T> >
+  {
+    typedef T Type;
+  };
+
+template< class MapBindingType, typename MapBindingMemberType,
+    typename T = typename StripOptional< MapBindingMemberType>::Type>
   class HeteroMapElement;
 template< class T>
   class HeteroMapElementBase;
 template< class T>
   HeteroMapElementBase< T> *
   new_clone(const HeteroMapElementBase< T> & entry);
+template< class T>
+  class HomoMapElement;
 }
 
 template< typename EntryType>
@@ -41,7 +55,7 @@ template< typename EntryType>
   {
     // TODO: Test this class and make sure it's doing the right thing
     typedef typename EntryType::BindingType EntryBinding;
-    typedef Element< EntryType> ElementType;
+    typedef detail::HomoMapElement< EntryType> Element;
   public:
     typedef ::std::map< ::std::string, EntryBinding> BindingType;
 
@@ -57,7 +71,7 @@ template< typename EntryType>
     nodeToValue(ParseLog & parse, BindingType & value,
         const YAML::Node & node) const;
 
-    ElementType *
+    Element *
     element(const ::std::string & name);
 
     virtual Map *
@@ -69,7 +83,7 @@ template< typename EntryType>
     setAllowUnknownEntries(const bool allowUnknownEntries);
 
   private:
-    typedef ::std::map< const ::std::string, ElementType> EntriesMap;
+    typedef ::std::map< const ::std::string, Element> EntriesMap;
 
     EntriesMap myEntries;
     bool myAllowUnknownEntries;
@@ -101,7 +115,13 @@ template< class BT>
         const YAML::Node & node) const;
 
     template< typename ElementType, typename MemberType>
-      detail::HeteroMapElement< BindingType, ElementType, MemberType > *
+      detail::HeteroMapElement< BindingType, MemberType,
+          typename ElementType::BindingType> *
+      element(const ::std::string & name,
+          MemberType (BindingType::* const member));
+
+    template< typename MemberType>
+      detail::HeteroMapElement< BindingType, MemberType> *
       element(const ::std::string & name,
           MemberType (BindingType::* const member));
 
