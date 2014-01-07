@@ -6,8 +6,8 @@
  *      Author: Martin Uhrin
  */
 
-#ifndef SCHEMA_MAP_H
-#define SCHEMA_MAP_H
+#ifndef SCHEMER_MAP_H
+#define SCHEMER_MAP_H
 
 // INCLUDES /////////////////////////////////////////////
 
@@ -15,8 +15,10 @@
 #include <string>
 
 #include <boost/ptr_container/ptr_map.hpp>
+#include <boost/scoped_ptr.hpp>
 
-#include "schemer/detail/Element.h"
+#include "schemer/Element.h"
+#include "schemer/detail/Type.h"
 
 // DEFINES //////////////////////////////////////////////
 
@@ -24,23 +26,24 @@ namespace schemer {
 
 // FORWARD DECLARATIONS ////////////////////////////////////
 namespace detail {
-template< class T, typename U>
-  class SchemaHeteroMapEntry;
+template< class T, typename U, typename V>
+  class HeteroMapElement;
 template< class T>
-  class SchemaHeteroMapEntryBase;
+  class HeteroMapElementBase;
 template< class T>
-  SchemaHeteroMapEntryBase< T> *
-  new_clone(const SchemaHeteroMapEntryBase< T> & entry);
+  HeteroMapElementBase< T> *
+  new_clone(const HeteroMapElementBase< T> & entry);
 }
 
-template< typename T>
-  class Map : public detail::ElementBase<
-      ::std::map< ::std::string, typename T::BindingType> >
+template< typename EntryType>
+  class Map : public detail::Type<
+      ::std::map< ::std::string, typename EntryType::BindingType> >
   {
     // TODO: Test this class and make sure it's doing the right thing
-    typedef typename T::BindingType MapSecondType;
+    typedef typename EntryType::BindingType EntryBinding;
+    typedef Element< EntryType> ElementType;
   public:
-    typedef ::std::map< ::std::string, MapSecondType> BindingType;
+    typedef ::std::map< ::std::string, EntryBinding> BindingType;
 
     Map();
     virtual
@@ -49,14 +52,13 @@ template< typename T>
     }
 
     virtual bool
-    valueToNode(YAML::Node & node, const BindingType & value,
-        const bool useDefaultOnFail) const;
+    valueToNode(YAML::Node & node, const BindingType & value) const;
     virtual bool
     nodeToValue(ParseLog & parse, BindingType & value,
-        const YAML::Node & node, const bool useDefaultOnFail) const;
+        const YAML::Node & node) const;
 
-    void
-    addEntry(const ::std::string & name, const T & element);
+    ElementType *
+    element(const ::std::string & name);
 
     virtual Map *
     clone() const;
@@ -67,51 +69,53 @@ template< typename T>
     setAllowUnknownEntries(const bool allowUnknownEntries);
 
   private:
-    typedef ::boost::ptr_map< ::std::string, T> EntriesMap;
+    typedef ::std::map< const ::std::string, ElementType> EntriesMap;
 
-    T myDefaultEntry;
     EntriesMap myEntries;
     bool myAllowUnknownEntries;
   };
 
-template< class T>
-  class HeteroMap : public detail::ElementBase< T>
+template< class BT>
+  class HeteroMap : public detail::Type< BT>
   {
   public:
-    typedef T BindingType;
+    typedef BT BindingType;
+    typedef detail::HeteroMapElementBase< BindingType> Entry;
+    typedef ::boost::ptr_map< const ::std::string, Entry> EntriesMap;
+    typedef typename EntriesMap::const_iterator EntryIterator;
 
     virtual
     ~HeteroMap()
     {
     }
 
-    virtual bool
-    valueToNode(YAML::Node & node, const BindingType & map,
-        const bool useDefaultOnFail) const;
-    virtual bool
-    nodeToValue(ParseLog & parse, BindingType & map, const YAML::Node & node,
-        const bool useDefaultOnFail) const;
+    EntryIterator
+    entriesBegin() const;
+    EntryIterator
+    entriesEnd() const;
 
-    template< typename U>
-      detail::SchemaHeteroMapEntry< T, U> *
-      addEntry(const ::std::string & name, U (T::* const member),
-          detail::ElementBase< U> * const element);
-    template< typename U>
-      detail::SchemaHeteroMapEntry< T, U> *
-      addScalarEntry(const ::std::string & name, U (T::* const member));
+    virtual bool
+    valueToNode(YAML::Node & node, const BindingType & map) const;
+    virtual bool
+    nodeToValue(ParseLog & parse, BindingType & map,
+        const YAML::Node & node) const;
+
+    template< typename ElementType, typename MemberType>
+      detail::HeteroMapElement< BindingType, ElementType, MemberType > *
+      element(const ::std::string & name,
+          MemberType (BindingType::* const member));
+
+    template< typename BaseType>
+      void
+      extends();
 
     virtual HeteroMap *
     clone() const;
 
   private:
-    typedef ::boost::ptr_map< const ::std::string,
-        detail::SchemaHeteroMapEntryBase< T> > EntriesMap;
-
     EntriesMap myEntries;
   };
 
 }
 
-#include "schemer/detail/Map.h"
-
-#endif /* SCHEMA_MAP_H */
+#endif /* SCHEMER_MAP_H */

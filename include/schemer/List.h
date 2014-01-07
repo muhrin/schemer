@@ -6,14 +6,13 @@
  *      Author: Martin Uhrin
  */
 
-#ifndef SCHEMA_LIST_H
-#define SCHEMA_LIST_H
+#ifndef SCHEMER_LIST_H
+#define SCHEMER_LIST_H
 
 // INCLUDES /////////////////////////////////////////////
-
 #include <vector>
 
-#include "schemer/detail/Element.h"
+#include "schemer/detail/Type.h"
 
 // DEFINES //////////////////////////////////////////////
 
@@ -21,16 +20,15 @@
 
 namespace schemer {
 
-template< class EntrySchema>
-  class List : public detail::ElementBase<
-      ::std::vector< typename EntrySchema::BindingType> >
+template< class EntryType>
+  class List : public detail::Type<
+      ::std::vector< typename EntryType::BindingType> >
   {
-    typedef typename EntrySchema::BindingType ListEntryType;
+    typedef typename EntryType::BindingType EntryBindingType;
   public:
-    typedef ::std::vector< ListEntryType> BindingType;
+    typedef ::std::vector< EntryBindingType> BindingType;
 
     List();
-    List(const EntrySchema & entrySchema);
     List(const List & toCopy);
     virtual
     ~List()
@@ -38,11 +36,10 @@ template< class EntrySchema>
     }
 
     virtual bool
-    valueToNode(YAML::Node & node, const BindingType & list,
-        const bool useDefaultOnFail) const;
+    valueToNode(YAML::Node & node, const BindingType & list) const;
     virtual bool
     nodeToValue(ParseLog & parse, BindingType & list,
-        const YAML::Node & node, const bool useDefaultOnFail) const;
+        const YAML::Node & node) const;
 
     List *
     length(const int length);
@@ -52,11 +49,9 @@ template< class EntrySchema>
 
   private:
     int myLength;
-    const EntrySchema myEntrySchema;
+    const EntryType myEntryType;
   };
 
 }
 
-#include "schemer/detail/List.h"
-
-#endif /* SCHEMA_LIST_H */
+#endif /* SCHEMER_LIST_H */

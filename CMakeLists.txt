@@ -30,9 +30,7 @@ add_definitions(-DBOOST_ALL_NO_LIB)
 find_package(Boost 1.36.0 REQUIRED)
 
 # Yaml
-if(NOT YAML_CPP_LIBRARIES)
-  find_package(YamlCpp REQUIRED)
-endif(NOT YAML_CPP_LIBRARIES)
+find_package(YamlCpp REQUIRED)
 
 ## END FIND PACKAGES ####################################
 
@@ -52,25 +50,30 @@ set_property(TARGET PROPERTY PROJECT_LABEL "Schemer")
 
 
 set(schemer_Header_Files
+  include/schemer/Element.h
+  include/schemer/Enumeration.h
   include/schemer/Fundamental.h
   include/schemer/List.h
   include/schemer/Map.h
   include/schemer/Parse.h
+  include/schemer/Registry.h
   include/schemer/Scalar.h
   include/schemer/Schemer.h
+  include/schemer/Types.h
   include/schemer/Variant.h
-  include/schemer/Wrapper.h
   include/schemer/YamlTranscode.h
 )
 source_group("Header Files" FILES ${schemer_Header_Files})
 
 set(schemer_Header_Files__detail
   include/schemer/detail/Element.h
+  include/schemer/detail/Enumeration.h
+  include/schemer/detail/Element.h
   include/schemer/detail/Fundamental.h
   include/schemer/detail/List.h
   include/schemer/detail/Map.h
+  include/schemer/detail/Type.h
   include/schemer/detail/Variant.h
-  include/schemer/detail/Wrapper.h
 )
 source_group("Header Files" FILES ${schemer_Header_Files})
 

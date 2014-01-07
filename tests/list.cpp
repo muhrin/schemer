@@ -27,15 +27,14 @@ BOOST_AUTO_TEST_CASE(ListTest)
     ORIGINAL_LIST[i] = ::std::rand();
 
   YAML::Node listNode;
-  schemer::List<schemer::Scalar<int> > listSchema;
-  listSchema.valueToNode(listNode, ORIGINAL_LIST, false);
+  schemer::serialise(ORIGINAL_LIST, &listNode);
 
   for(size_t i = 0; i < NUM_ELEMENTS; ++i)
     BOOST_REQUIRE(ORIGINAL_LIST[i] == listNode[i].as<int>());
 
   ::std::vector<int> newList;
   schemer::ParseLog parse;
-  listSchema.nodeToValue(parse, newList, listNode, false);
+  schemer::parse(listNode, &newList, &parse);
 
   BOOST_REQUIRE(newList == ORIGINAL_LIST);
 }

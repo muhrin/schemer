@@ -1,13 +1,13 @@
 /*
- * SchemaElementBase.h
+ * Element.h
  *
  *
  *  Created on: May 29, 2012
  *      Author: Martin Uhrin
  */
 
-#ifndef ELEMENT_BASE_H
-#define ELEMENT_BASE_H
+#ifndef SCHEMER_ELEMENT_DETAIL_H
+#define SCHEMER_ELEMENT_DETAIL_H
 
 // INCLUDES /////////////////////////////////////////////
 
@@ -22,153 +22,143 @@
 // FORWARD DECLARATIONS ////////////////////////////////////
 
 namespace schemer {
-namespace detail {
 
 template< typename T>
-  class ElementBase
-  {
-  public:
-    ElementBase();
-    ElementBase(const ElementBase & toCopy);
-    virtual
-    ~ElementBase()
-    {
-    }
-
-    ElementBase *
-    required();
-    bool
-    isRequired() const;
-
-    ElementBase *
-    defaultValue(const T & defaultValue);
-    const ::boost::optional< T>
-    getDefault() const;
-
-    virtual bool
-    valueToNode(YAML::Node & node, const T & value,
-        const bool useDefaultOnFail) const = 0;
-    virtual bool
-    nodeToValue(ParseLog & parse, T & value, const YAML::Node & node,
-        const bool useDefaultOnFail) const = 0;
-    bool
-    defaultValueToNode(YAML::Node & node) const;
-
-    virtual ElementBase *
-    clone() const = 0;
-
-  private:
-    ::boost::optional< T> myDefault;
-    bool myRequired;
-  };
-
-template< typename T>
-  ElementBase< T>::ElementBase() :
-      myRequired(false)
-  {
-  }
-
-template< typename T>
-  ElementBase< T>::ElementBase(const ElementBase & toCopy) :
-      myDefault(toCopy.myDefault), myRequired(toCopy.myRequired)
-  {
-  }
-
-template< typename T>
-  ElementBase< T> *
-  ElementBase< T>::required()
-  {
-    myRequired = true;
-    return this;
-  }
-
-template< typename T>
-  bool
-  ElementBase< T>::isRequired() const
-  {
-    return myRequired;
-  }
-
-template< typename T>
-  ElementBase< T> *
-  ElementBase< T>::defaultValue(const T & defaultValue)
+  Element< T> *
+  Element< T>::defaultValue(const BindingType & defaultValue)
   {
     myDefault = defaultValue;
     return this;
   }
 
 template< typename T>
-  const ::boost::optional< T>
-  ElementBase< T>::getDefault() const
+  const ::boost::optional< typename T::BindingType> &
+  Element< T>::getDefault() const
   {
     return myDefault;
   }
 
 template< typename T>
   bool
-  ElementBase< T>::defaultValueToNode(YAML::Node & node) const
+  Element< T>::valueToNode(YAML::Node & node, const BindingType & value) const
+  {
+    bool succeeded = myType.valueToNode(node, value);
+    if(!succeeded && myDefault)
+    {
+      node = *myDefault;
+      succeeded = true;
+    }
+
+    return succeeded;
+  }
+
+template< typename T>
+  bool
+  Element< T>::nodeToValue(ParseLog & parse, BindingType & value,
+      const YAML::Node & node) const
+  {
+    if(!node.IsDefined())
+    {
+      if(isRequired())
+        parse.logError(ParseLogErrorCode::REQUIRED_VALUE_MISSING,
+            "Required scalar value missing.");
+      return false;
+    }
+
+    bool succeeded = myType.nodeToValue(parse, value, node);
+    if(!succeeded && myDefault)
+    {
+      value = *myDefault;
+      succeeded = true;
+    }
+    return succeeded;
+  }
+
+template< typename T>
+  bool
+  Element< T>::defaultValueToNode(YAML::Node & node) const
   {
     if(!myDefault)
       return false;
 
-    return valueToNode(node, *myDefault, false);
+    return myType.valueToNode(node, *myDefault);
   }
 
 template< typename T>
-  class ElementBase< ::boost::optional< T> >
+  OptionalElement< T> *
+  OptionalElement< T>::defaultValue(const CppType & value)
   {
-  public:
-  ElementBase() {}
-  ElementBase(const ElementBase & toCopy):
-      myDefault(toCopy.myDefault)
+    myDefault = value;
+    return this;
+  }
+
+template< typename T>
+  const ::boost::optional< typename OptionalElement< T>::CppType> &
+  OptionalElement< T>::getDefault() const
+  {
+    return myDefault;
+  }
+
+template< typename T>
+  bool
+  OptionalElement< T>::valueToNode(YAML::Node & node,
+      const BindingType & value) const
+  {
+    if(!value)
+      return true;
+
+    bool succeeded = myType.valueToNode(node, *value);
+    if(!succeeded && myDefault)
     {
-    }
-    virtual
-    ~ElementBase()
-    {
+      node = *myDefault;
+      succeeded = true;
     }
 
-    bool
-    isRequired() const
+    return succeeded;
+  }
+
+template< typename T>
+  bool
+  OptionalElement< T>::nodeToValue(ParseLog & parse, BindingType & value,
+      const YAML::Node & node) const
+  {
+    if(!node.IsDefined())
     {
+      if(isRequired())
+        parse.logError(ParseLogErrorCode::REQUIRED_VALUE_MISSING,
+            "Required scalar value missing.");
       return false;
     }
 
-    ElementBase *
-    defaultValue(const T & defaultValue)
+    CppType nodeValue;
+    bool succeeded = myType.nodeToValue(parse, nodeValue, node);
+    if(!succeeded && myDefault)
     {
-      myDefault.reset(defaultValue);
-      return this;
+      value = *myDefault;
+      succeeded = true;
     }
-    const ::boost::optional< T>
-    getDefault() const
-    {
-      return myDefault;
-    }
+    else
+      value = nodeValue;
+    return succeeded;
+  }
 
-    virtual bool
-    valueToNode(YAML::Node & node, const ::boost::optional< T> & value,
-        const bool useDefaultOnFail) const = 0;
-    virtual bool
-    nodeToValue(ParseLog & parse, ::boost::optional< T> & value,
-        const YAML::Node & node, const bool useDefaultOnFail) const = 0;
-    bool
-    defaultValueToNode(YAML::Node & node) const
-    {
-      if(!myDefault)
-        return false;
-      node = *myDefault;
-      return true;
-    }
+template< typename T>
+  bool
+  OptionalElement< T>::defaultValueToNode(YAML::Node & node) const
+  {
+    if(!myDefault)
+      return false;
 
-    virtual ElementBase *
-    clone() const = 0;
+    return myType.valueToNode(node, *myDefault);
+  }
 
-  private:
-    ::boost::optional< T> myDefault;
-  };
+template< typename T>
+  Element< T> *
+  new_clone(const Element< T> & element)
+  {
+    return element.clone();
+  }
 
 }
-}
 
-#endif /* SCHEMA_ELEMENT_BASE_H */
+#endif /* SCHEMER_ELEMENT_DETAIL_H */

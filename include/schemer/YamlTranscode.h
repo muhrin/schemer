@@ -5,8 +5,8 @@
  *      Author: Martin Uhrin
  */
 
-#ifndef YAML_TRANSCODE_H
-#define YAML_TRANSCODE_H
+#ifndef SCHEMER_YAML_TRANSCODE_H
+#define SCHEMER_YAML_TRANSCODE_H
 
 // INCLUDES //////////////////////////////////
 
@@ -43,7 +43,7 @@ template< typename T>
       {
         try
         {
-          value.reset(node.as<T>());
+          value.reset(node.as< T>());
           return true;
         }
         catch(const YAML::BadConversion & /*e*/)
@@ -56,4 +56,4 @@ template< typename T>
 
 }
 
-#endif /* YAML_TRANSCODE_H */
+#endif /* SCHEMER_YAML_TRANSCODE_H */

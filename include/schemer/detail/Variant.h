@@ -1,13 +1,13 @@
 /*
- * SchemaVariant.h
+ * Variant.h
  *
  *
  *  Created on: May 29, 2012
  *      Author: Martin Uhrin
  */
 
-#ifndef SCHEMA_VARIANT_DETAIL_H
-#define SCHEMA_VARIANT_DETAIL_H
+#ifndef SCHEMER_VARIANT_DETAIL_H
+#define SCHEMER_VARIANT_DETAIL_H
 
 // INCLUDES /////////////////////////////////////////////
 
@@ -17,218 +17,135 @@
 
 namespace schemer {
 
-struct _null {typedef void * BindingType;};
-
-template <class ScalarSchema, class ListSchema, class MapSchema>
-class ValueToNodeVisitor : public boost::static_visitor<bool>
+struct _null
 {
-public:
-  ValueToNodeVisitor(
-      YAML::Node & node,
-      const bool useDefaultOnFail,
-      const ScalarSchema & scalar,
-      const ListSchema & list,
-      const MapSchema & map
-    ):
-    myNode(node),
-    myUseDefaultOnFail(useDefaultOnFail),
-    myScalar(scalar),
-    myList(list),
-    myMap(map)
-  {}
-
-  bool operator()(const typename ScalarSchema::BindingType & binding) const
-  { return myScalar.valueToNode(myNode, binding, myUseDefaultOnFail); }
-
-  bool operator()(const typename ListSchema::BindingType & binding) const
-  { return myList.valueToNode(myNode, binding, myUseDefaultOnFail); }
-
-  bool operator()(const typename MapSchema::BindingType & binding) const
-  { return myMap.valueToNode(myNode, binding, myUseDefaultOnFail); }
-
-private:
-  YAML::Node & myNode;
-  const bool myUseDefaultOnFail;
-  const ScalarSchema & myScalar;
-  const ListSchema & myList;
-  const MapSchema & myMap;
+  typedef void * BindingType;
 };
 
-template <class ScalarSchema, class ListSchema, class MapSchema>
-SchemaScalarListMap<ScalarSchema, ListSchema, MapSchema>::SchemaScalarListMap(
-  const ScalarSchema & scalarSchema,
-  const ListSchema & listSchema,
-  const MapSchema & mapSchema):
-myScalarSchema(scalarSchema),
-myListSchema(listSchema),
-myMapSchema(mapSchema)
-{}
-
-template <class ScalarSchema, class ListSchema, class MapSchema>
-SchemaScalarListMap<ScalarSchema, ListSchema, MapSchema>::SchemaScalarListMap(
-  const SchemaScalarListMap & toCopy):
-detail::ElementBase<BindingType>(toCopy),
-myScalarSchema(toCopy.myScalarSchema),
-myListSchema(toCopy.myListSchema),
-myMapSchema(toCopy.myMapSchema)
-{}
-
-template <class ScalarSchema, class ListSchema, class MapSchema>
-bool SchemaScalarListMap<ScalarSchema, ListSchema, MapSchema>::valueToNode(
-  YAML::Node & node, const BindingType & binding, const bool useDefaultOnFail) const
-{
-  ValueToNodeVisitor<ScalarSchema, ListSchema, MapSchema>
-    valueToNodeVisitor(node, useDefaultOnFail, myScalarSchema, myListSchema, myMapSchema);
-
-  return ::boost::apply_visitor(valueToNodeVisitor, binding);
-}
-
-template <class ScalarSchema, class ListSchema, class MapSchema>
-bool SchemaScalarListMap<ScalarSchema, ListSchema, MapSchema>::nodeToValue(
-  ParseLog & parse,
-  BindingType & binding,
-  const YAML::Node & node,
-  const bool useDefaultOnFail) const
-{
-  if(!node.IsDefined())
+template< class ScalarType, class ListType, class MapType>
+  class ValueToNodeVisitor : public boost::static_visitor< bool>
   {
-    if(isRequired())
-      parse.logError(ParseLogErrorCode::REQUIRED_VALUE_MISSING, "Missing required scalar-list-map");
-    return false;
+  public:
+    ValueToNodeVisitor(YAML::Node & node, const ScalarType & scalar,
+        const ListType & list, const MapType & map) :
+        myNode(node), myScalar(scalar), myList(list), myMap(map)
+    {
+    }
+
+    bool
+    operator()(const typename ScalarType::BindingType & binding) const
+    {
+      return myScalar.valueToNode(myNode, binding);
+    }
+
+    bool
+    operator()(const typename ListType::BindingType & binding) const
+    {
+      return myList.valueToNode(myNode, binding);
+    }
+
+    bool
+    operator()(const typename MapType::BindingType & binding) const
+    {
+      return myMap.valueToNode(myNode, binding);
+    }
+
+  private:
+    YAML::Node & myNode;
+    const ScalarType & myScalar;
+    const ListType & myList;
+    const MapType & myMap;
+  };
+
+template< class ScalarType, class ListType, class MapType>
+  bool
+  VariantScalarListMap< ScalarType, ListType, MapType>::valueToNode(
+      YAML::Node & node, const BindingType & binding) const
+  {
+    ValueToNodeVisitor< ScalarType, ListType, MapType> valueToNodeVisitor(node,
+        myScalarType, myListType, myMapType);
+
+    return ::boost::apply_visitor(valueToNodeVisitor, binding);
   }
 
-  if(node.IsScalar())
+template< class ScalarType, class ListType, class MapType>
+  bool
+  VariantScalarListMap< ScalarType, ListType, MapType>::nodeToValue(
+      ParseLog & parse, BindingType & binding, const YAML::Node & node) const
   {
-    // Make the variant contain the scalar binding type
-    binding = ScalarSchema::BindingType();
-    return myListSchema.nodeToValue(
-      parse,
-      ::boost::get<ScalarSchema::BindingType>(binding),
-      node,
-      useDefaultOnFail
-    );
-  }
-  else if(node.IsSequence())
-  {
-    // Make the variant contain the list binding type
-    binding = ListSchema::BindingType();
-    return myListSchema.nodeToValue(
-      parse,
-      ::boost::get<ListSchema::BindingType>(binding),
-      node,
-      useDefaultOnFail
-    );
-  }
-  else if(node.IsMap())
-  {
-    // Make the variant contain the list binding type
-    binding = MapSchema::BindingType();
-    return myMapSchema.nodeToValue(
-      parse,
-      ::boost::get<MapSchema::BindingType>(binding),
-      node,
-      useDefaultOnFail
-    );
-  }
-}
-
-template <class ScalarSchema, class ListSchema, class MapSchema>
-SchemaScalarListMap<ScalarSchema, ListSchema, MapSchema> *
-SchemaScalarListMap<ScalarSchema, ListSchema, MapSchema>::clone() const
-{
-  return new SchemaScalarListMap(*this);
-}
-
-template <class ListSchema, class MapSchema>
-SchemaListMap<ListSchema, MapSchema>::SchemaListMap()
-{}
-
-template <class ListSchema, class MapSchema>
-SchemaListMap<ListSchema, MapSchema>::SchemaListMap(
-  const ListSchema & listSchema,
-  const MapSchema & mapSchema):
-myListSchema(listSchema),
-myMapSchema(mapSchema)
-{}
-
-template <class ListSchema, class MapSchema>
-SchemaListMap<ListSchema, MapSchema>::SchemaListMap(const ListSchema & listSchema):
-myListSchema(listSchema)
-{}
-
-template <class ListSchema, class MapSchema>
-SchemaListMap<ListSchema, MapSchema>::SchemaListMap(const MapSchema & mapSchema):
-myMapSchema(mapSchema)
-{}
-
-template <class ListSchema, class MapSchema>
-SchemaListMap<ListSchema, MapSchema>::SchemaListMap(
-  const SchemaListMap & toCopy):
-detail::ElementBase<BindingType>(toCopy),
-myListSchema(toCopy.myListSchema),
-myMapSchema(toCopy.myMapSchema)
-{}
-
-template <class ListSchema, class MapSchema>
-bool SchemaListMap<ListSchema, MapSchema>::valueToNode(
-  YAML::Node & node, const BindingType & binding, const bool useDefaultOnFail) const
-{
-  ValueToNodeVisitor<_null, ListSchema, MapSchema>
-    valueToNodeVisitor(node, useDefaultOnFail, _null(), myListSchema, myMapSchema);
-
-  return ::boost::apply_visitor(valueToNodeVisitor, binding);
-}
-
-template <class ListSchema, class MapSchema>
-bool SchemaListMap<ListSchema, MapSchema>::nodeToValue(
-  ParseLog & parse,
-  BindingType & binding,
-  const YAML::Node & node,
-  const bool useDefaultOnFail
-) const
-{
-  if(!node.IsDefined())
-  {
-    if(isRequired())
-      parse.logError(ParseLogErrorCode::REQUIRED_VALUE_MISSING, "Missing required list map");
-    return false;
+    if(node.IsScalar())
+    {
+      // Make the variant contain the scalar binding type
+      binding = ScalarType::BindingType();
+      return myListType.nodeToValue(parse,
+          ::boost::get< ScalarType::BindingType>(binding), node);
+    }
+    else if(node.IsSequence())
+    {
+      // Make the variant contain the list binding type
+      binding = ListType::BindingType();
+      return myListType.nodeToValue(parse,
+          ::boost::get< ListType::BindingType>(binding), node);
+    }
+    else if(node.IsMap())
+    {
+      // Make the variant contain the list binding type
+      binding = MapType::BindingType();
+      return myMapType.nodeToValue(parse,
+          ::boost::get< MapType::BindingType>(binding), node);
+    }
   }
 
-  if(node.IsSequence())
+template< class ScalarType, class ListType, class MapType>
+  VariantScalarListMap< ScalarType, ListType, MapType> *
+  VariantScalarListMap< ScalarType, ListType, MapType>::clone() const
   {
-    // Make the variant contain the list binding type
-    binding = typename ListSchema::BindingType();
-    return myListSchema.nodeToValue(
-      parse,
-      ::boost::get<typename ListSchema::BindingType>(binding),
-      node,
-      useDefaultOnFail
-    );
+    return new VariantScalarListMap(*this);
   }
-  else if(node.IsMap())
+
+template< class ListSchema, class MapSchema>
+  bool
+  VariantListMap< ListSchema, MapSchema>::valueToNode(YAML::Node & node,
+      const BindingType & binding) const
   {
-    // Make the variant contain the list binding type
-    binding = typename MapSchema::BindingType();
-    return myMapSchema.nodeToValue(
-      parse,
-      ::boost::get<typename MapSchema::BindingType>(binding),
-      node,
-      useDefaultOnFail
-    );
+    ValueToNodeVisitor< _null, ListSchema, MapSchema> valueToNodeVisitor(node,
+        _null(), myListType, myMapType);
+
+    return ::boost::apply_visitor(valueToNodeVisitor, binding);
   }
-  else
-    return false;
 
-  return true;
-}
+template< class ListSchema, class MapSchema>
+  bool
+  VariantListMap< ListSchema, MapSchema>::nodeToValue(ParseLog & parse,
+      BindingType & binding, const YAML::Node & node) const
+  {
+    if(node.IsSequence())
+    {
+      // Make the variant contain the list binding type
+      binding = typename ListSchema::BindingType();
+      return myListType.nodeToValue(parse,
+          ::boost::get< typename ListSchema::BindingType>(binding), node);
+    }
+    else if(node.IsMap())
+    {
+      // Make the variant contain the list binding type
+      binding = typename MapSchema::BindingType();
+      return myMapType.nodeToValue(parse,
+          ::boost::get< typename MapSchema::BindingType>(binding), node);
+    }
+    else
+      return false;
 
-template <class ListSchema, class MapSchema>
-SchemaListMap<ListSchema, MapSchema> *
-SchemaListMap<ListSchema, MapSchema>::clone() const
-{
-  return new SchemaListMap(*this);
-}
+    return true;
+  }
+
+template< class ListSchema, class MapSchema>
+  VariantListMap< ListSchema, MapSchema> *
+  VariantListMap< ListSchema, MapSchema>::clone() const
+  {
+    return new VariantListMap(*this);
+  }
 
 }
 
-#endif /* SCHEMA_VARIANT_H */
+#endif /* SCHEMER_VARIANT_DETAIL_H */

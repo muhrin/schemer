@@ -1,13 +1,13 @@
 /*
- * SchemaFundamental.h
+ * Fundamental.h
  *
  *
  *  Created on: May 29, 2012
  *      Author: Martin Uhrin
  */
 
-#ifndef SCHEMA_FUNDAMENTAL_DETAIL_H
-#define SCHEMA_FUNDAMENTAL_DETAIL_H
+#ifndef SCHEMER_FUNDAMENTAL_DETAIL_H
+#define SCHEMER_FUNDAMENTAL_DETAIL_H
 
 // INCLUDES /////////////////////////////////////////////
 

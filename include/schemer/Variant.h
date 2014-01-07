@@ -6,8 +6,8 @@
  *      Author: Martin Uhrin
  */
 
-#ifndef SCHEMA_VARIANT_H
-#define SCHEMA_VARIANT_H
+#ifndef SCHEMER_VARIANT_H
+#define SCHEMER_VARIANT_H
 
 // INCLUDES /////////////////////////////////////////////
 #include <boost/variant.hpp>
@@ -20,91 +20,64 @@
 
 namespace schemer {
 
-template <class ScalarSchema, class ListSchema, class MapSchema>
-class SchemaScalarListMap :
-  public detail::ElementBase<
-    ::boost::variant<
-      typename ScalarSchema::BindingType,
-      typename ListSchema::BindingType,
-      typename MapSchema::BindingType>
-  >
-{
-public:
-  typedef ::boost::variant<
-    typename ScalarSchema::BindingType,
-    typename ListSchema::BindingType,
-    typename MapSchema::BindingType
-  > BindingType;
-
-  SchemaScalarListMap(
-    const ScalarSchema & scalarSchema,
-    const ListSchema & listSchema,
-    const MapSchema & mapSchema);
-  SchemaScalarListMap(const SchemaScalarListMap & toCopy);
-  virtual ~SchemaScalarListMap()
+template< class ScalarType, class ListType, class MapType>
+  class VariantScalarListMap : public detail::Type<
+      ::boost::variant< typename ScalarType::BindingType,
+          typename ListType::BindingType, typename MapType::BindingType> >
   {
-  }
+  public:
+    typedef ::boost::variant< typename ScalarType::BindingType,
+        typename ListType::BindingType, typename MapType::BindingType> BindingType;
 
-  // NOTE: Have to pull in any methods that we want to use directly (i.e. without this->)
-  // here because of the way identifier lookup works with template base classes.
-  // See: e.g. http://stackoverflow.com/questions/5286922/g-template-parameter-error
-  using detail::ElementBase<BindingType>::getDefault;
-  using detail::ElementBase<BindingType>::isRequired;
+    virtual
+    ~VariantScalarListMap()
+    {
+    }
 
-  virtual bool valueToNode(YAML::Node & node, const BindingType & binding, const bool useDefaultOnFail) const;
-  virtual bool nodeToValue(ParseLog & parse, BindingType & binding, const YAML::Node & node, const bool useDefaultOnFail) const;
+    virtual bool
+    valueToNode(YAML::Node & node, const BindingType & binding) const;
+    virtual bool
+    nodeToValue(ParseLog & parse, BindingType & binding,
+        const YAML::Node & node) const;
 
-  virtual SchemaScalarListMap * clone() const;
+    virtual VariantScalarListMap *
+    clone() const;
 
-private:
-  const ScalarSchema myScalarSchema;
-  const ListSchema myListSchema;
-  const MapSchema myMapSchema;
-};
+  private:
+    const ScalarType myScalarType;
+    const ListType myListType;
+    const MapType myMapType;
+  };
 
-template <class ListSchema, class MapSchema>
-class SchemaListMap :
-  public detail::ElementBase<
-    ::boost::variant<
-      typename ListSchema::BindingType,
-      typename MapSchema::BindingType>
-  >
-{
-public:
-  typedef ::boost::variant<
-    typename ListSchema::BindingType,
-    typename MapSchema::BindingType
-  > BindingType;
-
-  SchemaListMap();
-  SchemaListMap(
-    const ListSchema & listSchema,
-    const MapSchema & mapSchema);
-  SchemaListMap(const ListSchema & listSchema);
-  SchemaListMap(const MapSchema & mapSchema);
-  SchemaListMap(const SchemaListMap & toCopy);
-  virtual ~SchemaListMap()
+template< class ListType, class MapType>
+  class VariantListMap : public detail::Type<
+      ::boost::variant< typename ListType::BindingType,
+          typename MapType::BindingType> >
   {
-  }
+  public:
+    typedef ::boost::variant< typename ListType::BindingType,
+        typename MapType::BindingType> BindingType;
 
-  // NOTE: Have to pull in any methods that we want to use directly (i.e. without this->)
-  // here because of the way identifier lookup works with template base classes.
-  // See: e.g. http://stackoverflow.com/questions/5286922/g-template-parameter-error
-  using detail::ElementBase<BindingType>::getDefault;
-  using detail::ElementBase<BindingType>::isRequired;
+    virtual
+    ~VariantListMap()
+    {
+    }
 
-  virtual bool valueToNode(YAML::Node & node, const BindingType & binding, const bool useDefaultOnFail) const;
-  virtual bool nodeToValue(ParseLog & parse, BindingType & binding, const YAML::Node & node, const bool useDefaultOnFail) const;
+    virtual bool
+    valueToNode(YAML::Node & node, const BindingType & binding) const;
+    virtual bool
+    nodeToValue(ParseLog & parse, BindingType & binding,
+        const YAML::Node & node) const;
 
-  virtual SchemaListMap * clone() const;
+    virtual VariantListMap *
+    clone() const;
 
-private:
-  const ListSchema myListSchema;
-  const MapSchema myMapSchema;
-};
-
+  private:
+    const ListType myListType;
+    const MapType myMapType;
+  };
 
 }
 #include "schemer/detail/Variant.h"
 
-#endif /* SCHEMA_VARIANT_H */
+#endif /* SCHEMER_VARIANT_H */

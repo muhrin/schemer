@@ -18,66 +18,107 @@
 
 #include <schemer/Schemer.h>
 
-struct Person
+// USING ////////////////////////////
+using ::std::string;
+
+// CONSTANTS ////////////////////////
+static const string KEY_NAME = "name";
+static const string KEY_AGE = "age";
+static const string KEY_NICKNAME = "nickname";
+static const string KEY_PHONE_NO = "phone_no";
+static const string KEY_EMPLOYEE_NO = "employeeNo";
+
+static const string BOB_NAME = "Bob";
+static const int BOB_AGE = 29;
+static const int BOB_PHONE_NO = 123456789;
+
+struct Person_t
 {
   bool
-  operator ==(const Person & rhs)
+  operator ==(const Person_t & rhs) const
   {
     return name == rhs.name && age == rhs.age && nickname == rhs.nickname
         && phone_no == rhs.phone_no;
   }
-  ::std::string name;
   int age;
+  ::std::string name;
   ::boost::optional< ::std::string> nickname;
   ::boost::optional< int> phone_no;
 };
+
+struct Employee_t : public Person_t
+{
+  bool
+  operator ==(const Employee_t & rhs) const
+  {
+    if(!Person_t::operator ==(rhs))
+      return false;
+    return employeeNo == rhs.employeeNo;
+  }
+  int employeeNo;
+};
+
+// SCHEMAS ///////////////////////////////////
+SCHEMER_MAP(Person, Person_t)
+{
+  element<schemer::String>(KEY_NAME, &Person_t::name);
+  element<schemer::Int>(KEY_AGE, &Person_t::age);
+  element<schemer::String>(KEY_NICKNAME, &Person_t::nickname);
+  element<schemer::Int>(KEY_PHONE_NO, &Person_t::phone_no);
+}
+
+SCHEMER_MAP(Employee, Employee_t)
+{
+  extends<Person>();
+  element<schemer::Int>(KEY_EMPLOYEE_NO, &Employee_t::employeeNo)->defaultValue(-1);
+}
+
+const Person_t &
+bob();
 
 BOOST_AUTO_TEST_CASE(HeteroMapTest)
 {
   using ::std::string;
 
   // SETTINGS //
-  const string NAME = "Bob";
-  const int AGE = 29;
-  const int PHONE_NO = 123456789;
-
-  const string KEY_NAME = "name";
-  const string KEY_AGE = "age";
-  const string KEY_NICKNAME = "nickname";
-  const string KEY_PHONE_NO = "phone_no";
-  Person ORIGINAL_PERSON;
-  ORIGINAL_PERSON.name = NAME;
-  ORIGINAL_PERSON.age = AGE;
-  ORIGINAL_PERSON.phone_no = PHONE_NO;
 
   schemer::ParseLog parse;
 
-  schemer::HeteroMap< Person> personSchema;
-  personSchema.addScalarEntry(KEY_NAME, &Person::name);
-  personSchema.addScalarEntry(KEY_AGE, &Person::age);
-  personSchema.addScalarEntry(KEY_NICKNAME, &Person::nickname);
-  personSchema.addScalarEntry(KEY_PHONE_NO, &Person::phone_no);
-
   YAML::Node personNode;
-  personSchema.valueToNode(personNode, ORIGINAL_PERSON, false);
+  schemer::serialise(bob(), &personNode);
 
   // Check that the node got all the data from ORIGINAL_PERSON
   BOOST_REQUIRE(personNode.IsMap());
-  BOOST_REQUIRE(personNode[KEY_NAME].Scalar() == NAME);
-  BOOST_REQUIRE(personNode[KEY_AGE].as< int>() == AGE);
+  BOOST_REQUIRE(personNode[KEY_NAME].Scalar() == bob().name);
+  BOOST_REQUIRE(personNode[KEY_AGE].as< int>() == bob().age);
   BOOST_REQUIRE(personNode[KEY_NICKNAME].IsNull());
-  BOOST_REQUIRE(personNode[KEY_PHONE_NO].as< int>() == PHONE_NO);
+  BOOST_REQUIRE(personNode[KEY_PHONE_NO].as< int>() == bob().phone_no);
 
-  Person p;
-  personSchema.nodeToValue(parse, p, personNode, false);
+  Person_t p;
+  schemer::parse(personNode, &p, &parse);
 
-  // Check that the node was sucessfully converted back to a person
-  BOOST_REQUIRE(p.name == NAME);
-  BOOST_REQUIRE(p.age == AGE);
-  BOOST_REQUIRE(!p.nickname);
-  BOOST_REQUIRE(p.phone_no == PHONE_NO);
+  // Check that the node was successfully converted back to a person
+  BOOST_REQUIRE(p == bob());
 
-  BOOST_REQUIRE(ORIGINAL_PERSON == p);
+  YAML::Node bobEmployeeNode;
+  Employee_t bobEmployee;
+  bobEmployee.age = bob().age;
+  bobEmployee.employeeNo = 1234;
+  bobEmployee.name = bob().name;
+  bobEmployee.nickname = bob().nickname;
+  bobEmployee.phone_no = bob().phone_no;
+
+  schemer::serialise(bobEmployee, &bobEmployeeNode);
+  BOOST_REQUIRE(bobEmployeeNode.IsMap());
+  BOOST_REQUIRE(bobEmployeeNode[KEY_NAME].Scalar() == bob().name);
+  BOOST_REQUIRE(bobEmployeeNode[KEY_AGE].as< int>() == bob().age);
+  BOOST_REQUIRE(bobEmployeeNode[KEY_NICKNAME].IsNull());
+  BOOST_REQUIRE(bobEmployeeNode[KEY_PHONE_NO].as< int>() == bob().phone_no);
+
+  Employee_t employee;
+  schemer::parse(bobEmployeeNode, &employee, &parse);
+
+  BOOST_REQUIRE(bobEmployee == employee);
 }
 
 BOOST_AUTO_TEST_CASE(MapTest)
@@ -95,10 +136,8 @@ BOOST_AUTO_TEST_CASE(MapTest)
 
   schemer::ParseLog parse;
 
-  schemer::Map< schemer::Scalar< Value> > mapSchema;
-
   YAML::Node mapNode;
-  mapSchema.valueToNode(mapNode, ORIGINAL_MAP, false);
+  schemer::serialise(ORIGINAL_MAP, &mapNode);
 
   BOOST_FOREACH(Map::const_reference x, ORIGINAL_MAP)
   {
@@ -107,7 +146,29 @@ BOOST_AUTO_TEST_CASE(MapTest)
   }
 
   Map newMap;
-  mapSchema.nodeToValue(parse, newMap, mapNode, false);
+  schemer::parse(mapNode, &newMap, &parse);
 
   BOOST_REQUIRE(ORIGINAL_MAP == newMap);
 }
+
+SCHEMER_HOMO_MAP(PersonInfo)
+{
+  element("Firstname");
+  element("Lastname");
+}
+
+const Person_t &
+bob()
+{
+  static Person_t bob;
+  static bool initialised = false;
+  if(!initialised)
+  {
+    bob.name = BOB_NAME;
+    bob.age = BOB_AGE;
+    bob.phone_no = BOB_PHONE_NO;
+    initialised = true;
+  }
+  return bob;
+}
+

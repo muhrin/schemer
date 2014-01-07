@@ -6,8 +6,8 @@
  *      Author: Martin Uhrin
  */
 
-#ifndef SCHEMA_PARSE_H
-#define SCHEMA_PARSE_H
+#ifndef SCHEMER_PARSE_H
+#define SCHEMER_PARSE_H
 
 // INCLUDES /////////////////////////////////////////////
 #include <string>
@@ -125,4 +125,4 @@ private:
 
 }
 
-#endif /* SCHEMA_PARSE_H */
+#endif /* SCHEMER_PARSE_H */

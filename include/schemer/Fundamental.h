@@ -6,8 +6,8 @@
  *      Author: Martin Uhrin
  */
 
-#ifndef SCHEMA_FUNDAMENTAL_H
-#define SCHEMA_FUNDAMENTAL_H
+#ifndef SCHEMER_FUNDAMENTAL_H
+#define SCHEMER_FUNDAMENTAL_H
 
 // INCLUDES /////////////////////////////////////////////
 #include <boost/optional.hpp>
@@ -50,4 +50,4 @@ template< typename T>
 
 #include "schemer/detail/Fundamental.h"
 
-#endif /* SCHEMA_FUNDAMENTAL_H */
+#endif /* SCHEMER_FUNDAMENTAL_H */
