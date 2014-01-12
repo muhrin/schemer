@@ -73,6 +73,21 @@ SCHEMER_MAP(Employee, Employee_t)
   element(KEY_EMPLOYEE_NO, &Employee_t::employeeNo)->defaultValue(-1);
 }
 
+struct Test_t
+{
+  int someValue;
+};
+
+struct Test : public ::schemer::HeteroMap<Test_t>
+{
+  Test()
+  {
+    element("someValue", &Test_t::someValue);
+  }
+};
+
+SCHEMER_REGISTER(Test, Test_t);
+
 const Person_t &
 bob();
 

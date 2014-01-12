@@ -38,6 +38,9 @@ template< class T>
   bool
   List< T>::valueToNode(const BindingType & list, YAML::Node * const node) const
   {
+    if(myLength != -1 && myLength != list.size())
+      return false;
+
     BOOST_FOREACH(typename BindingType::const_reference value, list)
     {
       YAML::Node listEntry;

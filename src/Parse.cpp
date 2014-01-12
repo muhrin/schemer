@@ -11,6 +11,7 @@
 #include <iostream>
 #include <sstream>
 
+#include <boost/algorithm/string/join.hpp>
 #include <boost/foreach.hpp>
 
 // NAMESPACES ////////////////////////////////
@@ -63,14 +64,7 @@ ParseLog::getErrors() const
 ::std::string
 ParseLog::pathString() const
 {
-  ::std::stringstream ss;
-  for(size_t i = 0; i < myParsePath.size(); ++i)
-  {
-    ss << myParsePath[i] << ".";
-  }
-  if(!myParsePath.empty())
-    ss << myParsePath.back();
-  return ss.str();
+  return boost::algorithm::join(myParsePath, ".");
 }
 
 void

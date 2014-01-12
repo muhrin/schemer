@@ -70,6 +70,11 @@ template< typename EntryType>
     virtual bool
     nodeToValue(const YAML::Node & node, BindingType * const value,
         ParseLog * const log) const;
+    virtual bool
+    nodeToValue(const YAML::Node & node, BindingType * const value) const
+    {
+      return nodeToValue(node, value, NULL);
+    }
 
     Element *
     element(const ::std::string & name);
@@ -113,6 +118,11 @@ template< class BT>
     virtual bool
     nodeToValue(const YAML::Node & node, BindingType * const map,
         ParseLog * log) const;
+    virtual bool
+    nodeToValue(const YAML::Node & node, BindingType * const value) const
+    {
+      return nodeToValue(node, value, NULL);
+    }
 
     template< typename ElementType, typename MemberType>
       detail::HeteroMapElement< BindingType, MemberType,

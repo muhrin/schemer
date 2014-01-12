@@ -33,8 +33,37 @@ BOOST_AUTO_TEST_CASE(ListTest)
     BOOST_REQUIRE(ORIGINAL_LIST[i] == listNode[i].as<int>());
 
   ::std::vector<int> newList;
-  schemer::ParseLog parse;
-  schemer::parse(listNode, &newList, &parse);
+  schemer::parse(listNode, &newList);
 
   BOOST_REQUIRE(newList == ORIGINAL_LIST);
+}
+
+SCHEMER_LIST(LotteryNumbers, ::schemer::Int)
+{
+  length(7);
+}
+
+BOOST_AUTO_TEST_CASE(FixedList)
+{
+  const LotteryNumbers schema;
+
+  ::std::vector<int> lotteryNumbers(2);
+  YAML::Node lotteryNumbersNode;
+
+  // First check that it fails if list is too small
+  BOOST_REQUIRE(!schema.valueToNode(lotteryNumbers, &lotteryNumbersNode));
+
+
+  lotteryNumbers.resize(7);
+  for(size_t i = 0; i < 7; ++i)
+    lotteryNumbers[i] = i;
+
+  // Try again with correct size
+  schema.valueToNode(lotteryNumbers, &lotteryNumbersNode);
+
+  // Decode
+  ::std::vector<int> decodedNumbers;
+  schema.nodeToValue(lotteryNumbersNode, &decodedNumbers, NULL);
+
+  BOOST_REQUIRE(lotteryNumbers == decodedNumbers);
 }

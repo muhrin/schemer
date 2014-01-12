@@ -31,6 +31,12 @@ template< typename T>
   }
 template< typename T>
   bool
+  parse(const YAML::Node & node, T * const valueOut)
+  {
+    return getType< T>().nodeToValue(node, valueOut, NULL);
+  }
+template< typename T>
+  bool
   serialise(const T & value, YAML::Node * const node)
   {
     return getType< T>().valueToNode(value, node);

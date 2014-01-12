@@ -195,7 +195,7 @@ template< class MapBindingType, typename MapBindingMemberType, typename T>
         return false;
       }
 
-      MapBindingMemberType value;
+      T value;
       if(!myType.nodeToValue(node, &value, log))
         return false;
 
@@ -246,11 +246,8 @@ template< class MapBindingType, typename MapBindingMemberType, typename T>
     }
 
     HeteroMapElement *
-    defaultValue(const BindingType & defaultValue)
+    defaultValue(const MapBindingMemberType & defaultValue)
     {
-      if(!myDefault)
-        return false;
-
       myDefault = defaultValue;
       return this;
     }
@@ -259,7 +256,7 @@ template< class MapBindingType, typename MapBindingMemberType, typename T>
     virtual bool
     isRequired() const
     {
-      return true;
+      return false;
     }
 
     virtual bool
@@ -272,10 +269,7 @@ template< class MapBindingType, typename MapBindingMemberType, typename T>
     valueToNode(const MapBindingType & map, YAML::Node * const node) const
     {
       if(!(map.*myMember))
-      {
-        *node = YAML::Node(); // Set to null node
-        return true;
-      }
+        return false;
 
       const MapBindingMemberType value = *(map.*myMember);
       return myType.valueToNode(value, node);
@@ -291,7 +285,7 @@ template< class MapBindingType, typename MapBindingMemberType, typename T>
         return true;
       }
 
-      MapBindingMemberType value;
+      T value;
       if(!myType.nodeToValue(node, &value, log))
         return false;
 
@@ -539,14 +533,17 @@ template< typename BindingType>
       const ::std::string & entryName = it->first.Scalar();
       process = toProcess.find(entryName);
       if(process != toProcess.end())
+      {
+        ParseLog::PathPusher pusher(log, entryName);
         myEntries.find(entryName)->second->nodeToValue(it->second, map, log);
+        toProcess.erase(process);
+      }
       else
       {
         if(log)
           log->logError(ParseLogErrorCode::UNRECOGNISED_ELEMENT,
-              "Unrecognised map element: " + *process);
+              "Unrecognised map element: " + entryName);
       }
-      toProcess.erase(process);
     }
 
     // Finally see if there are any left that need processing

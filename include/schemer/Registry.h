@@ -19,26 +19,35 @@
 #include "schemer/Map.h"
 #include "schemer/Scalar.h"
 
+#define SCHEMER_REGISTER(SCHEMA_TYPE, BINDING_TYPE) \
+  const SCHEMA_TYPE & getType(const BINDING_TYPE &) \
+  { return ::schemer::getTypeInstance< SCHEMA_TYPE>(); }
+
 #define SCHEMER_MAP(NAME, TYPE) \
   struct NAME : public ::schemer::HeteroMap< TYPE> \
   { NAME(); }; \
-  const NAME & getType(const TYPE & ) \
+  inline const NAME & getType(const TYPE &) \
   { return ::schemer::getTypeInstance< NAME>(); } \
-  NAME::NAME()
+  inline NAME::NAME()
 
 #define SCHEMER_HOMO_MAP(NAME) SCHEMER_HOMO_MAP_TYPED(NAME, ::schemer::String)
 
 #define SCHEMER_HOMO_MAP_TYPED(NAME, TYPE) \
   struct NAME : public ::schemer::Map< TYPE> \
   { NAME(); }; \
-  NAME::NAME()
+  inline NAME::NAME()
 
 #define SCHEMER_ENUM(NAME, TYPE) \
   struct NAME : public ::schemer::Enumeration< TYPE> \
   { NAME(); }; \
-    const NAME & getType(const TYPE & ) \
+  inline const NAME & getType(const TYPE & ) \
   { return ::schemer::getTypeInstance< NAME>(); } \
-  NAME::NAME()
+  inline NAME::NAME()
+
+#define SCHEMER_LIST(NAME, TYPE) \
+  struct NAME : public ::schemer::List< TYPE> \
+  { NAME(); }; \
+  inline NAME::NAME()
 
 namespace schemer {
 
