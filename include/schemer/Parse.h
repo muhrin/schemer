@@ -10,6 +10,7 @@
 #define SCHEMER_PARSE_H
 
 // INCLUDES /////////////////////////////////////////////
+#include <iostream>
 #include <string>
 #include <vector>
 
@@ -37,13 +38,13 @@ class ParseLogError
 {
 public:
   ParseLogError(const ParseLogErrorCode::Value code,
-      const ::std::string & path) :
+      const std::string & path) :
       myCode(code), myPath(path)
   {
   }
 
   ParseLogError(const ParseLogErrorCode::Value code,
-      const ::std::string & path, const ::std::string & message) :
+      const std::string & path, const std::string & message) :
       myCode(code), myPath(path), myMessage(message)
   {
   }
@@ -57,40 +58,40 @@ public:
     return myCode;
   }
 
-  const ::std::string &
+  const std::string &
   getPath() const
   {
     return myPath;
   }
 
-  const ::std::string &
+  const std::string &
   getMessage() const
   {
     return myMessage;
   }
 
   void
-  print() const;
+  print(std::ostream * const os) const;
 
 private:
   ParseLogErrorCode::Value myCode;
-  ::std::string myPath;
-  ::std::string myMessage;
+  std::string myPath;
+  std::string myMessage;
 };
 
 class ParseLog
 {
 public:
-  typedef ::std::vector< ParseLogError> ParseErrors;
+  typedef std::vector< ParseLogError> ParseErrors;
 
-  class PathPusher : ::boost::noncopyable
+  class PathPusher : boost::noncopyable
   {
   public:
-    PathPusher(ParseLog * const log, const ::std::string & path);
+    PathPusher(ParseLog * const log, const std::string & path);
     ~PathPusher();
   private:
     ParseLog * const myLog;
-    const ::std::string & myPath;
+    const std::string & myPath;
   };
 
   bool
@@ -98,23 +99,28 @@ public:
   const ParseErrors &
   getErrors() const;
 
-  ::std::string
+  std::string
   pathString() const;
 
   void
   logError(const ParseLogErrorCode::Value code);
   void
   logError(const ParseLogErrorCode::Value code,
-      const ::std::string & message);
+      const std::string & message);
 
   void
-  printErrors() const;
+  printErrors(std::ostream * const os) const;
+  void
+  printErrors() const
+  {
+    printErrors(&std::cerr);
+  }
 
 private:
-  typedef ::std::vector< ::std::string> ParsePath;
+  typedef std::vector< std::string> ParsePath;
 
   void
-  doPushPath(const ::std::string & path);
+  doPushPath(const std::string & path);
   void
   doPopPath();
 

@@ -11,6 +11,7 @@
 #include <iostream>
 #include <sstream>
 
+#include <boost/assert.hpp>
 #include <boost/algorithm/string/join.hpp>
 #include <boost/foreach.hpp>
 
@@ -28,17 +29,18 @@ ParseLogError::operator =(const ParseLogError & rhs)
 }
 
 void
-ParseLogError::print() const
+ParseLogError::print(std::ostream * const os) const
 {
-  ::std::cout << myPath << ": " << myMessage << " code: " << myCode
-      << ::std::endl;
+  BOOST_ASSERT(os);
+
+  *os << myPath << ": " << myMessage << " code: " << myCode
+      << std::endl;
 }
 
 ParseLog::PathPusher::PathPusher(ParseLog * const log,
-    const ::std::string & path) :
+    const std::string & path) :
     myLog(log), myPath(path)
 {
-
   if(myLog)
     myLog->doPushPath(myPath);
 }
@@ -75,18 +77,16 @@ ParseLog::logError(const ParseLogErrorCode::Value code)
 
 void
 ParseLog::logError(const ParseLogErrorCode::Value code,
-    const ::std::string & message)
+    const std::string & message)
 {
   myParseErrors.push_back(ParseLogError(code, pathString(), message));
 }
 
 void
-ParseLog::printErrors() const
+ParseLog::printErrors(std::ostream * const os) const
 {
   BOOST_FOREACH(const ParseLogError & error, myParseErrors)
-  {
-    error.print();
-  }
+    error.print(os);
 }
 
 void
