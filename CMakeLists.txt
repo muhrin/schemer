@@ -20,7 +20,6 @@ project(Schemer)
 set(INSTALL_LIB_DIR lib CACHE PATH "Installation directory for libraries")
 set(INSTALL_INCLUDE_DIR include CACHE PATH  "Installation directory for header files"
 )
-set(INSTALL_ARCHIVE_DIR lib CACHE PATH  "Installation directory for header files")
 if(WIN32 AND NOT CYGWIN)
   set(DEF_INSTALL_CMAKE_DIR CMake)
 else()
@@ -30,7 +29,7 @@ set(INSTALL_CMAKE_DIR ${DEF_INSTALL_CMAKE_DIR} CACHE PATH "Installation director
  CMake files")
 
 # Make relative paths absolute (needed later on)
-foreach(p LIB INCLUDE ARCHIVE CMAKE)
+foreach(p LIB INCLUDE CMAKE)
   set(var INSTALL_${p}_DIR)
   if(NOT IS_ABSOLUTE "${${var}}")
     set(${var} "${CMAKE_INSTALL_PREFIX}/${${var}}")
@@ -123,11 +122,11 @@ target_link_libraries(schemer
 ## Installation
 install(TARGETS schemer
   EXPORT SchemerTargets
-  PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR}
-  LIBRARY DESTINATION ${INSTALL_LIB_DIR}
+  PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR} COMPONENT dev
+  LIBRARY DESTINATION ${INSTALL_LIB_DIR} COMPONENT shlib
   ARCHIVE DESTINATION ${INSTALL_LIB_DIR}
 )
-install(DIRECTORY include/ DESTINATION include
+install(DIRECTORY include/ DESTINATION ${INSTALL_INCLUDE_DIR}
   COMPONENT dev
   PATTERN "*.in" EXCLUDE
 )
@@ -142,12 +141,14 @@ export(TARGETS schemer FILE "${PROJECT_BINARY_DIR}/SchemerTargets.cmake")
 # (this registers the build-tree with a global CMake-registry)
 export(PACKAGE Schemer)
  
-# Create the SpglibConfig.cmake and SpglibConfigVersion.cmake files
+# Create the *Config.cmake and *ConfigVersion.cmake files
 file(RELATIVE_PATH REL_INCLUDE_DIR "${INSTALL_CMAKE_DIR}"
    "${INSTALL_INCLUDE_DIR}")
 
 # ... for the build tree
-set(CONF_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}" "${PROJECT_BINARY_DIR}")
+set(CONF_INCLUDE_DIRS
+  "${PROJECT_SOURCE_DIR}/include"  "${PROJECT_BINARY_DIR}/include"
+)
 configure_file(cmake/SchemerConfig.cmake.in
   "${PROJECT_BINARY_DIR}/SchemerConfig.cmake" @ONLY)
 
