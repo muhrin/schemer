@@ -13,6 +13,30 @@ project(Schemer)
 
 ## Configuration options ###############################
 
+###
+### Configuration settings
+###
+# Offer the user the choice of overriding the installation directories
+set(INSTALL_LIB_DIR lib CACHE PATH "Installation directory for libraries")
+set(INSTALL_INCLUDE_DIR include CACHE PATH  "Installation directory for header files"
+)
+set(INSTALL_ARCHIVE_DIR lib CACHE PATH  "Installation directory for header files")
+if(WIN32 AND NOT CYGWIN)
+  set(DEF_INSTALL_CMAKE_DIR CMake)
+else()
+  set(DEF_INSTALL_CMAKE_DIR share/schemer/cmake)
+endif()
+set(INSTALL_CMAKE_DIR ${DEF_INSTALL_CMAKE_DIR} CACHE PATH "Installation directory for
+ CMake files")
+
+# Make relative paths absolute (needed later on)
+foreach(p LIB INCLUDE ARCHIVE CMAKE)
+  set(var INSTALL_${p}_DIR)
+  if(NOT IS_ABSOLUTE "${${var}}")
+    set(${var} "${CMAKE_INSTALL_PREFIX}/${${var}}")
+  endif()
+endforeach()
+
 set(SCHEMER_BUILD_TESTS FALSE CACHE BOOL "Build schemer tests.")
 
 configure_file (
@@ -86,7 +110,7 @@ set(schemer_Files
 #####################
 ## Schemer Library ##
 #####################
-add_library(schemer
+add_library(schemer SHARED
   ${schemer_Files}
 )
 
@@ -95,6 +119,57 @@ target_link_libraries(schemer
   ${Boost_LIBRARIES}
   ${YAML_CPP_LIBRARIES}
 )
+
+## Installation
+install(TARGETS schemer
+  EXPORT SchemerTargets
+  PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR}
+  LIBRARY DESTINATION ${INSTALL_LIB_DIR}
+  ARCHIVE DESTINATION ${INSTALL_LIB_DIR}
+)
+install(DIRECTORY include/ DESTINATION include
+  COMPONENT dev
+  PATTERN "*.in" EXCLUDE
+)
+
+###
+### Configuration file settings
+###
+# Add all targets to the build-tree export set
+export(TARGETS schemer FILE "${PROJECT_BINARY_DIR}/SchemerTargets.cmake")
+ 
+# Export the package for use from the build-tree
+# (this registers the build-tree with a global CMake-registry)
+export(PACKAGE Schemer)
+ 
+# Create the SpglibConfig.cmake and SpglibConfigVersion.cmake files
+file(RELATIVE_PATH REL_INCLUDE_DIR "${INSTALL_CMAKE_DIR}"
+   "${INSTALL_INCLUDE_DIR}")
+
+# ... for the build tree
+set(CONF_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}" "${PROJECT_BINARY_DIR}")
+configure_file(cmake/SchemerConfig.cmake.in
+  "${PROJECT_BINARY_DIR}/SchemerConfig.cmake" @ONLY)
+
+# ... for the install tree
+set(CONF_INCLUDE_DIRS "\${SCHEMER_CMAKE_DIR}/${REL_INCLUDE_DIR}")
+configure_file(cmake/SchemerConfig.cmake.in
+  "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/SchemerConfig.cmake" @ONLY)
+
+# ... for both
+configure_file(cmake/SchemerConfigVersion.cmake.in
+  "${PROJECT_BINARY_DIR}/SchemerConfigVersion.cmake" @ONLY)
+
+# Install the *Config.cmake and *ConfigVersion.cmake
+install(FILES
+  "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/SchemerConfig.cmake"
+  "${PROJECT_BINARY_DIR}/SchemerConfigVersion.cmake"
+  DESTINATION "${INSTALL_CMAKE_DIR}" COMPONENT dev)
+ 
+# Install the export set for use with the install-tree
+install(EXPORT SchemerTargets DESTINATION
+  "${INSTALL_CMAKE_DIR}" COMPONENT dev)
+
 
 ##########
 # Tests ##
