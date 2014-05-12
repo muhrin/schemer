@@ -2,14 +2,15 @@
 
 cmake_minimum_required(VERSION 2.6)
 
+project(Schemer)
+
 set(SCHEMER_VERSION_MAJOR 0)
 set(SCHEMER_VERSION_MINOR 1)
 set(SCHEMER_VERSION_PATCH 1)
 set(SCHEMER_VERSION "${SCHEMER_VERSION_MAJOR}.${SCHEMER_VERSION_MINOR}.${SCHEMER_VERSION_PATCH}")
 
-message(STATUS "Configuring Schemer ${SCHEMER_VERSION}")
+message(STATUS "Configuring ${PROJECT_NAME} ${SCHEMER_VERSION}")
 
-project(Schemer)
 
 ## Configuration options ###############################
 
@@ -23,7 +24,7 @@ set(INSTALL_INCLUDE_DIR include CACHE PATH  "Installation directory for header f
 if(WIN32 AND NOT CYGWIN)
   set(DEF_INSTALL_CMAKE_DIR CMake)
 else()
-  set(DEF_INSTALL_CMAKE_DIR share/schemer/cmake)
+  set(DEF_INSTALL_CMAKE_DIR share/${CMAKE_PROJECT_NAME}/cmake)
 endif()
 set(INSTALL_CMAKE_DIR ${DEF_INSTALL_CMAKE_DIR} CACHE PATH "Installation directory for
  CMake files")
