@@ -9,7 +9,6 @@
 #define SCHEMER_YAML_TRANSCODE_H
 
 // INCLUDES //////////////////////////////////
-
 #include <boost/optional.hpp>
 
 #include <yaml-cpp/yaml.h>
@@ -19,12 +18,11 @@
 // Some custom YAML transcoders
 namespace YAML {
 
-// build_cell::Sphere
 template< typename T>
-  struct convert< ::boost::optional< T> >
+  struct convert< boost::optional< T> >
   {
     static Node
-    encode(const ::boost::optional< T> & value)
+    encode(const boost::optional< T> & value)
     {
       Node ret;
       if(value)
@@ -32,7 +30,7 @@ template< typename T>
       return ret;
     }
     static bool
-    decode(const Node & node, ::boost::optional< T> & value)
+    decode(const Node & node, boost::optional< T> & value)
     {
       if(node.IsNull())
       {

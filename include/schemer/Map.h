@@ -58,8 +58,7 @@ template< typename KeyType, typename EntryType>
     // TODO: Test this class and make sure it's doing the right thing
     typedef typename KeyType::BindingType KeyBinding;
     typedef typename EntryType::BindingType EntryBinding;
-    typedef detail::HomoMapElement< EntryType> Element;
-    SCHEMER_STATIC_ASSERT_MSG(
+    typedef detail::HomoMapElement< EntryType> Element;SCHEMER_STATIC_ASSERT_MSG(
         (boost::is_base_of<Scalar<KeyBinding>, KeyType>::value),
         "Key must be a scalar schema type.");
   public:
@@ -150,9 +149,16 @@ template< class BT>
     virtual HeteroMap *
     clone() const;
 
+    boost::optional< BT>
+    getDefault() const;
+
   private:
     EntriesMap myEntries;
   };
+
+template< typename Map>
+  boost::optional< typename Map::BindingType>
+  getDefault();
 
 }
 

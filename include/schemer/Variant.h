@@ -20,11 +20,11 @@ namespace schemer {
 
 template< class ScalarType, class ListType, class MapType>
   class VariantScalarListMap : public detail::Type<
-      ::boost::variant< typename ScalarType::BindingType,
+      boost::variant< typename ScalarType::BindingType,
           typename ListType::BindingType, typename MapType::BindingType> >
   {
   public:
-    typedef ::boost::variant< typename ScalarType::BindingType,
+    typedef boost::variant< typename ScalarType::BindingType,
         typename ListType::BindingType, typename MapType::BindingType> BindingType;
 
     virtual
@@ -49,11 +49,11 @@ template< class ScalarType, class ListType, class MapType>
 
 template< class ListType, class MapType>
   class VariantListMap : public detail::Type<
-      ::boost::variant< typename ListType::BindingType,
+      boost::variant< typename ListType::BindingType,
           typename MapType::BindingType> >
   {
   public:
-    typedef ::boost::variant< typename ListType::BindingType,
+    typedef boost::variant< typename ListType::BindingType,
         typename MapType::BindingType> BindingType;
 
     virtual

@@ -10,6 +10,7 @@
 #define SCHEMER_MAP_DETAIL_H
 
 // INCLUDES /////////////////////////////////////////////
+#include <boost/assert.hpp>
 #include <boost/foreach.hpp>
 #include <boost/optional.hpp>
 #include <boost/range/iterator_range.hpp>
@@ -182,18 +183,9 @@ template< class MapBindingType, typename MapBindingMemberType, typename T>
     nodeToValue(const YAML::Node & node, MapBindingType * const map,
         ParseLog * const log) const
     {
-      if(!node.IsDefined() || node.IsNull())
-      {
-        // Check for a default
-        if(defaultValueToMap(map))
-          return true;
-
-        if(log)
-          log->logError(ParseLogErrorCode::REQUIRED_VALUE_MISSING,
-              "Required map entry missing.");
-
-        return false;
-      }
+      // Try to use the default if the node is null
+      if(node.IsNull() && defaultValueToMap(map))
+        return true;
 
       T value;
       if(!myType.nodeToValue(node, &value, log))
@@ -278,14 +270,13 @@ template< class MapBindingType, typename MapBindingMemberType, typename T>
     nodeToValue(const YAML::Node & node, MapBindingType * const map,
         ParseLog * const log) const
     {
-      if(!node.IsDefined() || node.IsNull())
-      {
-        // Check for a default
-        if(!defaultValueToMap(map) && node.IsDefined())
-          map->*myMember = MapBindingMemberType();
-        return true;
-      }
+      BOOST_ASSERT(node.IsDefined());
 
+      // Try to use the default if the node is null
+      if(node.IsNull() && defaultValueToMap(map))
+        return true;
+
+      // Try to get the value of the node
       T value;
       if(!myType.nodeToValue(node, &value, log))
         return false;
@@ -293,12 +284,14 @@ template< class MapBindingType, typename MapBindingMemberType, typename T>
       *map.*myMember = value;
       return true;
     }
+
     virtual bool
     defaultValueToMap(MapBindingType * const map) const
     {
       map->*myMember = myDefault;
       return myDefault;
     }
+
     virtual HeteroMapElement *
     clone() const
     {
@@ -506,18 +499,21 @@ template< typename BindingType>
   HeteroMap< BindingType>::nodeToValue(const YAML::Node & node,
       BindingType * const map, ParseLog * const log) const
   {
+    BOOST_ASSERT(node.IsDefined());
+
     if(node.IsNull())
     {
-      // We have a map with no entries, check that we have no required entries without
-      // a default
-      bool succeeded = true;
-      const YAML::Node nullNode;
+      // Treat this as a map with no entries.
+      // Check that we have no required entries without a default
+      BindingType value;
       BOOST_FOREACH(typename EntriesMap::const_reference entry, myEntries)
       {
-        if(!entry.second->nodeToValue(nullNode, map, log))
-          succeeded = false;
+        if(!entry.second->defaultValueToMap(&value)
+            && entry.second->isRequired())
+          return false;
       }
-      return succeeded;
+      *map = value;
+      return true;
     }
 
     if(!node.IsMap())
@@ -527,12 +523,12 @@ template< typename BindingType>
       return false;
     }
 
-    // First populate all the elements we need to process so we can check them off
+    // Build up the map into this local and then later copy if successful
+    BindingType value;
+    // First populate all the elements we need to process so we can check them off as we go
     std::set< std::string> toProcess;
     BOOST_FOREACH(typename EntriesMap::const_reference entry, myEntries)
-    {
       toProcess.insert(entry.first);
-    }
 
     // Now go through the node checking each complete element off
     std::set< std::string>::const_iterator process;
@@ -544,7 +540,7 @@ template< typename BindingType>
       if(process != toProcess.end())
       {
         ParseLog::PathPusher pusher(log, entryName);
-        myEntries.find(entryName)->second->nodeToValue(it->second, map, log);
+        myEntries.find(entryName)->second->nodeToValue(it->second, &value, log);
         toProcess.erase(process);
       }
       else
@@ -555,23 +551,21 @@ template< typename BindingType>
       }
     }
 
-    // Finally see if there are any left that need processing
+    // Finally see if there are any left that need to have default values applied
     BOOST_FOREACH(const std::string & e, toProcess)
     {
       const Entry & entry = *myEntries.find(e)->second;
-      if(entry.isRequired())
+      if(!entry.defaultValueToMap(&value) && entry.isRequired())
       {
-        if(entry.hasDefault())
-          entry.defaultValueToMap(map);
-        else
-        {
-          if(log)
-            log->logError(ParseLogErrorCode::REQUIRED_VALUE_MISSING,
-                "Required element missing: " + e);
-        }
+        if(log)
+          log->logError(ParseLogErrorCode::REQUIRED_VALUE_MISSING,
+              "Required element missing: " + e);
+        return false;
       }
     }
 
+    // Finally copy over the result
+    *map = value;
     return true;
   }
 
@@ -635,6 +629,28 @@ template< class BindingType>
                 *entry.second));
       }
     }
+
+template< class BindingType>
+  boost::optional< BindingType>
+  HeteroMap< BindingType>::getDefault() const
+  {
+    // Populate with all the defaults that we have.  If there are any required entries
+    // that don't have defaults then this whole map does not have a default
+    BindingType value;
+    BOOST_FOREACH(typename EntriesMap::const_reference entry, myEntries)
+    {
+      if(!entry.second->defaultValueToMap(&value) && entry.second->isRequired())
+        return boost::optional< BindingType>();
+    }
+    return value;
+  }
+
+template< typename Map>
+  boost::optional< typename Map::BindingType>
+  getDefault()
+  {
+    return getTypeInstance< Map>().getDefault();
+  }
 
 } // namespace schemer
 
